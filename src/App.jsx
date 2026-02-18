@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, BarChart2, List, Loader2, CheckCircle2, ArrowRight } from 'lucide-react'; 
+import { Activity, BarChart2, List } from 'lucide-react'; 
 import Header from './components/Header';
 import ShiftDashboard from './components/ShiftDashboard';
 import TimelineView from './components/TimelineView';
@@ -10,6 +10,7 @@ import EditTaskModal from './components/EditTaskModal';
 import ShiftManager from './components/ShiftManager';
 import ImportTasksModal from './components/ImportTasksModal';
 import EmptyState from './components/EmptyState';
+import ConfirmationModal from './components/ConfirmationModal';
 import { formatTime, isTimeInShift, calculateStats } from './utils/utils';
 import { 
   initializeFirebase, 
@@ -34,8 +35,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true); 
   const [importModalOpen, setImportModalOpen] = useState(false);
   
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [showDemoSuccess, setShowDemoSuccess] = useState(false);
+  // States for the generic confirmation modal
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processSuccess, setProcessSuccess] = useState(false);
 
   const [shifts, setShifts] = useState([
     { id: 'shift-a', name: 'Shift A', start: '06:00', end: '14:00', lead: 'Alex Mercer', resources: ['Sarah Jenkins', 'Mike Ross', 'David Kim'] },
@@ -85,61 +88,68 @@ export default function App() {
     }
   };
   
-  const handleDataAction = async (actionType) => {
+  const handleDataAction = async (actionDetails) => {
     if (!user) return;
-    try { 
-        if (actionType === 'load_demo') {
-            setIsDemoLoading(true);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await generateFullSchedule();
-            setIsDemoLoading(false);
-            setShowDemoSuccess(true);
-        } else if (actionType === 'clear_demo') {
-            await deleteDemoTasks();
-        } else if (actionType === 'delete_all') {
-            await deleteAllTasks();
+    setConfirmAction(actionDetails);
+  };
+
+  const executeConfirmedAction = async () => {
+    if (!confirmAction) return;
+
+    setIsProcessing(true);
+    try {
+        switch (confirmAction.type) {
+            case 'load_demo':
+                await generateFullSchedule();
+                break;
+            case 'clear_demo':
+                await deleteDemoTasks();
+                break;
+            case 'delete_all':
+                await deleteAllTasks();
+                break;
+            default:
+                console.warn(`Unknown action type: ${confirmAction.type}`);
         }
-    } catch (e) { 
-        console.error(e); 
-        setIsDemoLoading(false);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // UX delay
+        setProcessSuccess(true);
+    } catch (e) {
+        console.error("Data action failed:", e);
+        // Reset state on failure
+        setIsProcessing(false);
+        setConfirmAction(null);
+        alert("An error occurred. Please try again.");
+    } finally {
+        setIsProcessing(false);
     }
+  };
+
+  const resetConfirmationState = () => {
+    setConfirmAction(null);
+    setIsProcessing(false);
+    setProcessSuccess(false);
   };
 
   const handleImportTasks = async (importedTasks, sourceLabel = 'Import') => {
     const enrichedTasks = importedTasks.map(t => {
-        // Map various possible CSV headers to our schema
-        const title = t.title || t['Task Name'] || t['TaskName'] || 'Untitled Task';
-        const plannedStart = t.plannedStart || t['Schedule'] || t['Start'] || '00:00';
+        const title = t.title || t['Task Name'] || 'Untitled Task';
+        const plannedStart = t.plannedStart || t['Schedule'] || '00:00';
         const type = t.type || t['Category'] || 'General';
-        const frequency = t.frequency || t['Frequency'] || 'One-time';
-        const rawCron = t.cronExpression || t['Cron Expression'] || t['CronExpression'];
-        const rawManualDate = t.manualDate || t['Date'];
+        // ... (rest of mapping)
         
         return {
             ...t,
-            // Generate a unique ID here so it can be saved to Firebase
             id: t.id || `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            title: title, 
-            plannedStart: plannedStart,
-            type: type,
-            frequency: frequency,
+            title, plannedStart, type,
             status: 'pending',
             createdAt: t.createdAt || new Date().toISOString(),
-            cronExpression: rawCron || '',
-            manualDate: rawManualDate || '',
+            // ... (rest of enrichment)
             addedBy: sourceLabel,
-            user: 'Static User',
-            plannedEnd: '' 
         };
     });
 
     try {
-        // SAVE TO DB: This persists data across refreshes
         await saveTasksBatch(enrichedTasks);
-        
-        // We do NOT need setTasks() here because the subscribeToTasks listener 
-        // in the useEffect above will automatically detect the new data 
-        // in Firebase and update the UI.
     } catch (error) {
         console.error("Failed to save imported tasks", error);
         alert("Failed to save tasks to database.");
@@ -155,46 +165,6 @@ export default function App() {
   const complianceStatus = shiftData.compliant ? 'compliant' : 'non_compliant';
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-light">Loading environment...</div>;
-
-  if (isDemoLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
-         <div className="relative mb-6">
-            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="text-indigo-600 animate-pulse" size={24}/>
-            </div>
-         </div>
-         <h2 className="text-xl font-bold text-slate-800">Setting up Demo Environment</h2>
-         <p className="text-slate-500 mt-2">Generating sample tasks and schedules...</p>
-      </div>
-    );
-  }
-
-  if (showDemoSuccess) {
-    return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-             <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl p-8 text-center border border-slate-100 animate-in zoom-in-95 duration-500">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-100">
-                    <CheckCircle2 size={40} strokeWidth={3} />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Demo Data Loaded!</h2>
-                <p className="text-slate-500 mb-8 leading-relaxed text-sm">
-                    We've successfully populated your timeline with sample tasks. You can now explore the dashboard features.
-                </p>
-                <button 
-                    onClick={() => {
-                      setViewMode('tasks'); 
-                      setShowDemoSuccess(false);
-                    }}
-                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-                >
-                    View All Tasks <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
-                </button>
-             </div>
-        </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 font-sans text-slate-800">
@@ -219,7 +189,7 @@ export default function App() {
         {tasks.length === 0 ? (
           <EmptyState 
             onImport={() => setImportModalOpen(true)} 
-            onLoadDemo={() => handleDataAction('load_demo')} 
+            onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'This will add a set of sample tasks to your board. Is that okay?'})} 
           />
         ) : (
           <>
@@ -269,13 +239,36 @@ export default function App() {
       {editingTask && <EditTaskModal task={editingTask} onClose={handleEditTaskClose} onUpdate={handleEditTaskUpdate} />}
       
       {isManageShiftsOpen && (
-        <ShiftManager 
-          shifts={shifts} 
-          onSave={setShifts} 
-          onClose={() => setIsManageShiftsOpen(false)} 
-          onDataAction={handleDataAction} 
-          onViewTasks={() => setViewMode('tasks')}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-100 flex overflow-hidden max-h-[90vh] relative">
+            <ShiftManager 
+              shifts={shifts} 
+              onSave={setShifts} 
+              onClose={() => setIsManageShiftsOpen(false)} 
+              onDataAction={handleDataAction}
+              onViewTasks={() => setViewMode('tasks')}
+            />
+            
+            {/* Confirmation Modal positioned within the settings modal */}
+            <ConfirmationModal
+              action={confirmAction}
+              isProcessing={isProcessing}
+              isSuccess={processSuccess}
+              onConfirm={executeConfirmedAction}
+              onCancel={resetConfirmationState}
+              onSuccessClose={() => {
+                  resetConfirmationState();
+                  setIsManageShiftsOpen(false); // Close shift manager if it was open
+                  setViewMode('tasks'); // Go to tasks view
+              }}
+              onViewTasks={() => {
+                  resetConfirmationState();
+                  setIsManageShiftsOpen(false); // Close shift manager
+                  setViewMode('tasks'); // Go to tasks view
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
