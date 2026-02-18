@@ -31,7 +31,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true); 
   const [importModalOpen, setImportModalOpen] = useState(false);
   
-  // New states for Demo Loading UX
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [showDemoSuccess, setShowDemoSuccess] = useState(false);
 
@@ -91,13 +90,16 @@ export default function App() {
         const rawCron = t.cronExpression || t['Cron Expression'] || t['CronExpression'];
         const rawManualDate = t.manualDate || t['Date'];
         
+        // Remove logic that calculated end time
+        
         return {
             ...t,
             createdAt: t.createdAt || new Date().toISOString(),
             cronExpression: rawCron || '',
             manualDate: rawManualDate || '',
             addedBy: sourceLabel,
-            user: 'Static User' // Placeholder as requested
+            user: 'Static User',
+            plannedEnd: '' // Ensure no end time is set
         };
     });
 

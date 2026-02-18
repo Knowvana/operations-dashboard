@@ -23,29 +23,18 @@ const TasksListView = ({ tasks, onSelectTask }) => {
     }
   };
 
-  const getWeekdayString = (freq) => {
-    if (!freq) return null;
-    if (freq.toLowerCase() === 'weekdays' || freq.toLowerCase() === 'daily') {
-        return 'Sun, Mon, Tue, Wed, Thu, Fri, Sat'; // Assuming daily covers all, or restrict if strictly weekdays
-    }
-    if (freq.toLowerCase() === 'weekly') return 'Mon'; 
-    return freq;
-  };
-
   const generateCron = (task) => {
     if (task.cronExpression) return task.cronExpression;
     const time = task.plannedStart || '00:00';
     const [h, m] = time.split(':');
-    
-    // Simple interpretation
     if (task.frequency?.toLowerCase() === 'daily') return `${m} ${h} * * *`;
-    if (task.frequency?.toLowerCase() === 'weekly') return `${m} ${h} * * 1`; // Default Mon
-    return `${m} ${h} * * *`; // Fallback
+    if (task.frequency?.toLowerCase() === 'weekly') return `${m} ${h} * * 1`; 
+    return `${m} ${h} * * *`; 
   };
 
   return (
     <div className="space-y-6">
-      {/* Page Header - Reverted to "All Tasks" style */}
+      {/* Page Header */}
       <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-slate-200/60 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
            <h2 className="text-xl font-bold text-slate-800">All Tasks</h2>
@@ -62,7 +51,6 @@ const TasksListView = ({ tasks, onSelectTask }) => {
                 className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
               />
            </div>
-           {/* Re-added status filter to match "All Tasks" view as requested */}
            <select 
              value={filterType}
              onChange={e => setFilterType(e.target.value)}
@@ -82,11 +70,11 @@ const TasksListView = ({ tasks, onSelectTask }) => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
               <tr>
-                <th className="px-6 py-4 w-1/5">Task Name</th>
-                <th className="px-6 py-4 w-2/5">Schedule Details</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Date Added</th>
-                <th className="px-6 py-4">Added by</th>
+                <th className="px-6 py-4 w-[20%]">Task Name</th>
+                <th className="px-6 py-4 w-[35%]">Schedule Details</th>
+                <th className="px-6 py-4 w-[15%]">Category</th>
+                <th className="px-6 py-4 w-[15%]">Date Added</th>
+                <th className="px-6 py-4 w-[15%]">Added by</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -101,37 +89,37 @@ const TasksListView = ({ tasks, onSelectTask }) => {
                     <div className="text-xs text-slate-400 font-mono mt-0.5">{task.id}</div>
                   </td>
                   
-                  {/* Detailed Schedule Column with Labels */}
+                  {/* Detailed Schedule Column */}
                   <td className="px-6 py-4 align-top">
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div className="flex flex-col gap-2 text-xs">
                         
-                        {/* Time */}
-                        <div className="col-span-2 flex items-center gap-2">
-                             <span className="font-bold text-slate-400 w-24 text-[10px] uppercase tracking-wider">Time:</span>
+                        {/* Time - Removed End Time */}
+                        <div className="flex items-center gap-2">
+                             <span className="font-bold text-slate-400 w-28 text-[10px] uppercase tracking-wider whitespace-nowrap">Time:</span>
                              <span className="font-mono text-slate-700 font-bold bg-slate-50 px-1 rounded">
-                                {task.plannedStart} {task.plannedEnd && `- ${task.plannedEnd}`}
+                                {task.plannedStart}
                              </span>
                         </div>
 
                         {/* Date (Optional) */}
                         {task.manualDate && (
-                             <div className="col-span-2 flex items-center gap-2">
-                                <span className="font-bold text-slate-400 w-24 text-[10px] uppercase tracking-wider">Date:</span>
+                             <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-400 w-28 text-[10px] uppercase tracking-wider whitespace-nowrap">Date:</span>
                                 <span className="text-slate-600">{formatDate(task.manualDate)}</span>
                              </div>
                         )}
 
                         {/* Frequency */}
-                        <div className="col-span-2 flex items-start gap-2">
-                             <span className="font-bold text-slate-400 w-24 text-[10px] uppercase tracking-wider mt-0.5">Frequency:</span>
-                             <span className="text-slate-600 break-words flex-1">
+                        <div className="flex items-start gap-2">
+                             <span className="font-bold text-slate-400 w-28 text-[10px] uppercase tracking-wider mt-0.5 whitespace-nowrap">Frequency:</span>
+                             <span className="text-slate-600 break-words flex-1 leading-relaxed">
                                 {task.frequency === 'Weekdays' ? 'Sun, Mon, Tue, Wed, Thu' : (task.frequency || 'One-time')}
                              </span>
                         </div>
 
                         {/* Cron Expression */}
-                        <div className="col-span-2 flex items-center gap-2">
-                             <span className="font-bold text-slate-400 w-24 text-[10px] uppercase tracking-wider">Cron Expression:</span>
+                        <div className="flex items-center gap-2">
+                             <span className="font-bold text-slate-400 w-28 text-[10px] uppercase tracking-wider whitespace-nowrap">Cron Expression:</span>
                              <span className="font-mono text-[10px] text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                                 {generateCron(task)}
                              </span>

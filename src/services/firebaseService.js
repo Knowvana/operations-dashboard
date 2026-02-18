@@ -105,7 +105,7 @@ export const generateFullSchedule = async () => {
             updatedAt = new Date().toISOString();
             updatedBy = "System Admin";
             actualStart = t.start;
-            actualEnd = t.end;
+            // Removed automatic actualEnd setting from demo data as per request
         } else if (t.status === 'in_progress') {
             updatedAt = new Date().toISOString();
             updatedBy = "System Admin";
@@ -115,12 +115,11 @@ export const generateFullSchedule = async () => {
         batch.set(docRef, {
             title: t.title,
             plannedStart: t.start,
-            plannedEnd: t.end,
+            plannedEnd: "", // Explicitly empty
             status: t.status,
             actualStart: actualStart,
             actualEnd: actualEnd,
             type: t.type,
-            // Map the new fields from JSON
             frequency: t.frequency || "",
             cronExpression: t.cronExpression || "",
             manualDate: t.manualDate || "",
@@ -128,7 +127,6 @@ export const generateFullSchedule = async () => {
             comments: t.status === 'completed' ? "Executed successfully via automation." : "",
             updatedAt: updatedAt,
             updatedBy: updatedBy,
-            // Use ISO string instead of serverTimestamp to avoid 'Invalid Date' in UI
             createdAt: new Date().toISOString(), 
             isDemo: true 
         });
