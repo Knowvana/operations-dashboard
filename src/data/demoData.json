@@ -1,0 +1,92 @@
+[
+  { 
+    "title": "System Health Check", 
+    "start": "08:00", 
+    "end": "08:30", 
+    "type": "routine", 
+    "status": "completed",
+    "frequency": "Daily",
+    "cronExpression": "0 8 * * *"
+  },
+  { 
+    "title": "Database Backup", 
+    "start": "09:00", 
+    "end": "09:45", 
+    "type": "critical", 
+    "status": "completed",
+    "frequency": "Daily",
+    "cronExpression": "0 9 * * *"
+  },
+  { 
+    "title": "Team Standup", 
+    "start": "10:00", 
+    "end": "10:30", 
+    "type": "admin", 
+    "status": "completed",
+    "frequency": "Weekdays",
+    "cronExpression": "0 10 * * 1-5"
+  },
+  { 
+    "title": "API Performance Review", 
+    "start": "11:30", 
+    "end": "12:00", 
+    "type": "routine", 
+    "status": "in_progress",
+    "frequency": "Weekly",
+    "cronExpression": "30 11 * * 1"
+  },
+  { 
+    "title": "Security Patch Deployment", 
+    "start": "13:00", 
+    "end": "14:30", 
+    "type": "critical", 
+    "status": "pending",
+    "manualDate": "2026-02-18",
+    "frequency": "Ad-hoc"
+  },
+  { 
+    "title": "Log Analysis", 
+    "start": "15:00", 
+    "end": "15:30", 
+    "type": "routine", 
+    "status": "pending",
+    "frequency": "Daily",
+    "cronExpression": "0 15 * * *"
+  },
+  { 
+    "title": "Shift Handover", 
+    "start": "16:00", 
+    "end": "16:15", 
+    "type": "admin", 
+    "status": "pending",
+    "frequency": "Daily",
+    "cronExpression": "0 16 * * *"
+  },
+  { 
+    "title": "Cache Invalidation", 
+    "start": "17:00", 
+    "end": "17:15", 
+    "type": "routine", 
+    "status": "pending",
+    "frequency": "Daily",
+    "cronExpression": "0 17 * * *"
+  },
+  { 
+    "title": "User Access Audit", 
+    "start": "19:00", 
+    "end": "20:00", 
+    "type": "admin", 
+    "status": "pending",
+    "frequency": "Monthly",
+    "cronExpression": "0 19 1 * *"
+  },
+  { 
+    "title": "Nightly Sync", 
+    "start": "23:00", 
+    "end": "23:30", 
+    "type": "routine", 
+    "status": "pending",
+    "frequency": "Daily",
+    "cronExpression": "0 23 * * *"
+  }
+]

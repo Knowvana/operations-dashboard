@@ -9,13 +9,15 @@ const TimelineView = ({
   onSelectTask 
 }) => {
   const timelineRef = useRef(null);
-  const hours = getTimelineHours();
+  const times = getTimelineHours();
   const timeString = formatTime(currentTime);
+  const currentHour = currentTime.getHours().toString().padStart(2, '0');
+  const currentMinute = currentTime.getMinutes() < 30 ? '00' : '30';
+  const currentSlot = `${currentHour}:${currentMinute}`;
 
   useEffect(() => {
     if (tasks.length > 0) {
-      const hour = currentTime.getHours().toString().padStart(2, '0');
-      const el = document.getElementById(`hour-${hour}`);
+      const el = document.getElementById(`slot-${currentSlot}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -24,35 +26,30 @@ const TimelineView = ({
 
   return (
     <div className="relative py-8" ref={timelineRef}>
-      
       {/* The Timeline Spine */}
       <div className="absolute left-[80px] top-0 bottom-0 w-px bg-slate-200 z-0"></div>
 
-      {/* Current Time Indicator Line */}
+      {/* Current Time Indicator - left side, not overlapping */}
       <div 
-        className="absolute left-[80px] w-3 h-3 -translate-x-1.5 bg-indigo-600 rounded-full z-20 border-2 border-slate-50 shadow-md transition-all duration-1000 ease-linear"
-        style={{ top: `${(currentTime.getHours() * 60 + currentTime.getMinutes()) / (24 * 60) * 100}%` }} 
+        className="absolute left-0 w-[70px] h-6 flex items-center justify-end z-20"
+        style={{ top: `${(currentTime.getHours() * 60 + (currentTime.getMinutes() < 30 ? 0 : 30)) / (24 * 60) * 100}%` }}
       >
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap">
-              Current Time {formatTime(currentTime)}
-          </div>
+        <div className="bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+          Current: {formatTime(currentTime)}
+        </div>
       </div>
 
-      {hours.map((hour) => {
-        const hourInt = parseInt(hour.split(':')[0]);
-        const hourTasks = tasks.filter(t => {
-          const startHour = parseInt(t.plannedStart.split(':')[0]);
-          return startHour === hourInt;
+      {times.map((slot) => {
+        const [hour, minute] = slot.split(':');
+        const slotTasks = tasks.filter(t => {
+          return t.plannedStart === slot;
         });
-
-        const isCurrent = parseInt(timeString.split(':')[0]) === hourInt;
-        
-        const shiftEnding = shifts.find(s => parseInt(s.end.split(':')[0]) === hourInt);
-        const shiftStarting = shifts.find(s => parseInt(s.start.split(':')[0]) === hourInt);
+        const isCurrentSlot = slot === currentSlot;
+        const shiftEnding = shifts.find(s => s.end === slot);
+        const shiftStarting = shifts.find(s => s.start === slot);
 
         return (
-          <div key={hour} id={`hour-${hour.split(':')[0]}`} className={`relative group ${shiftStarting ? 'my-12' : 'pb-10'}`}>
-            
+          <div key={slot} id={`slot-${slot}`} className={`relative group ${shiftStarting ? 'my-12' : 'pb-8'}`}>
             {/* Shift Handover Badge */}
             {shiftStarting && shiftEnding && (
               <div className="absolute top-[-32px] left-[100px] right-0 flex items-center z-10">
@@ -67,29 +64,28 @@ const TimelineView = ({
 
             {/* Timeline Time Marker */}
             <div className={`absolute left-0 w-[60px] text-right text-xs font-mono font-bold tracking-tight pt-1 transition-colors
-              ${isCurrent ? 'text-indigo-600' : 'text-slate-400'}`}>
-              {hour}
+              ${isCurrentSlot ? 'text-indigo-600' : 'text-slate-400'}`}>
+              {slot}
             </div>
-            
+
             {/* Timeline Node (Dot) */}
             <div className={`absolute left-[76px] top-2 h-2 w-2 rounded-full border-2 bg-white z-10
-              ${isCurrent ? 'border-indigo-600 scale-125' : 'border-slate-300'}`}>
+              ${isCurrentSlot ? 'border-indigo-600 scale-125' : 'border-slate-300'}`}>
             </div>
-            
-            {/* Hour Content */}
-            <div className={`transition-all duration-500 ml-[100px] ${isCurrent ? 'opacity-100' : 'opacity-90'}`}>
-              {hourTasks.length === 0 ? (
+
+            {/* Slot Content */}
+            <div className={`transition-all duration-500 ml-[100px] ${isCurrentSlot ? 'opacity-100' : 'opacity-90'}`}>
+              {slotTasks.length === 0 ? (
                 <div className="h-6 border-b border-dashed border-slate-200/50 w-full" />
               ) : (
                 <div className="space-y-4">
-                  {hourTasks.map(task => {
+                  {slotTasks.map(task => {
                     const shiftStatus = getShiftActivityStatus(task, timeString);
-                    
                     return (
                       <div 
                         key={task.id}
                         onClick={() => onSelectTask(task)}
-                        className="relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group/card hover:shadow-md transition-all cursor-pointer"
+                        className={`relative rounded-xl shadow-sm border border-slate-200 overflow-hidden group/card hover:shadow-md transition-all cursor-pointer ${isCurrentSlot ? 'bg-gradient-to-r from-indigo-50 via-indigo-100 to-white' : 'bg-white'}`}
                       >
                           {/* Left Gradient Border */}
                           <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${shiftStatus.gradient}`}></div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, Clock, User, Users, Settings } from 'lucide-react';
 
-const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings }) => {
+const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings, onOpenImport }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -63,7 +63,13 @@ const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings 
                  <p className="text-xl font-mono font-bold text-indigo-600 tabular-nums tracking-tight leading-none">{shiftDetails.end}</p>
               </div>
             </div>
-            
+            <button
+              onClick={onOpenImport}
+              className="h-10 px-4 rounded-full bg-gradient-to-r from-green-400 via-teal-400 to-blue-400 text-white font-bold shadow-lg hover:from-green-500 hover:to-blue-500 transition-all text-sm mr-2"
+              style={{boxShadow:'0 2px 16px 0 rgba(34,197,94,0.08)' }}
+            >
+              Import Tasks
+            </button>
             <button 
               onClick={onOpenSettings}
               className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50 hover:border-indigo-300 text-slate-400 hover:text-indigo-600 transition-all flex items-center justify-center group"

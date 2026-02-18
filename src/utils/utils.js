@@ -3,13 +3,15 @@ export const formatTime = (date) => {
   return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 };
 
-// Generate an array of hours for the timeline
+// Generate an array of times (HH:mm) for the timeline at 30-minute intervals
 export const getTimelineHours = () => {
-  const hours = [];
-  for (let i = 0; i < 24; i++) {
-    hours.push(i.toString().padStart(2, '0') + ":00");
+  const times = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      times.push(h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0'));
+    }
   }
-  return hours;
+  return times;
 };
 
 // Check if a time string falls within a start/end range (handles midnight crossing)
