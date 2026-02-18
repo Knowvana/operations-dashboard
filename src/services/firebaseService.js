@@ -173,3 +173,22 @@ export const deleteDemoTasks = async () => {
     throw error;
   }
 };
+
+export const saveTasksBatch = async (tasks) => {
+  try {
+    const batch = writeBatch(db);
+    const tasksRef = collection(db, 'tasks');
+    
+    tasks.forEach(task => {
+      // Create a reference with the specific ID we generated
+      const docRef = doc(tasksRef, task.id);
+      batch.set(docRef, task);
+    });
+    
+    await batch.commit();
+    console.log(`Successfully saved ${tasks.length} tasks to Firebase.`);
+  } catch (error) {
+    console.error("Error saving batch tasks:", error);
+    throw error;
+  }
+};

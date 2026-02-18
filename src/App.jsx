@@ -6,6 +6,7 @@ import TimelineView from './components/TimelineView';
 import ReportView from './components/ReportView';
 import TasksListView from './components/TasksListView'; 
 import TaskModal from './components/TaskModal';
+import EditTaskModal from './components/EditTaskModal';
 import ShiftManager from './components/ShiftManager';
 import ImportTasksModal from './components/ImportTasksModal';
 import EmptyState from './components/EmptyState';
@@ -18,13 +19,15 @@ import {
   updateTask,
   generateFullSchedule,
   deleteAllTasks,
-  deleteDemoTasks
+  deleteDemoTasks,
+  saveTasksBatch
 } from './services/firebaseService';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]); 
   const [selectedTask, setSelectedTask] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [viewMode, setViewMode] = useState('timeline');
   const [isManageShiftsOpen, setIsManageShiftsOpen] = useState(false);
@@ -65,6 +68,23 @@ export default function App() {
 
   const handleUpdateTask = async (taskId, updates) => { try { await updateTask(taskId, updates); } catch (e) { console.error(e); } };
   
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+  };
+
+  const handleEditTaskClose = () => {
+    setEditingTask(null);
+  };
+
+  const handleEditTaskUpdate = async (taskId, updates) => {
+    try {
+      await updateTask(taskId, updates);
+      setEditingTask(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  
   const handleDataAction = async (actionType) => {
     if (!user) return;
     try { 
@@ -85,25 +105,45 @@ export default function App() {
     }
   };
 
-  const handleImportTasks = (importedTasks, sourceLabel = 'Import') => {
+  const handleImportTasks = async (importedTasks, sourceLabel = 'Import') => {
     const enrichedTasks = importedTasks.map(t => {
+        // Map various possible CSV headers to our schema
+        const title = t.title || t['Task Name'] || t['TaskName'] || 'Untitled Task';
+        const plannedStart = t.plannedStart || t['Schedule'] || t['Start'] || '00:00';
+        const type = t.type || t['Category'] || 'General';
+        const frequency = t.frequency || t['Frequency'] || 'One-time';
         const rawCron = t.cronExpression || t['Cron Expression'] || t['CronExpression'];
         const rawManualDate = t.manualDate || t['Date'];
         
-        // Remove logic that calculated end time
-        
         return {
             ...t,
+            // Generate a unique ID here so it can be saved to Firebase
+            id: t.id || `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            title: title, 
+            plannedStart: plannedStart,
+            type: type,
+            frequency: frequency,
+            status: 'pending',
             createdAt: t.createdAt || new Date().toISOString(),
             cronExpression: rawCron || '',
             manualDate: rawManualDate || '',
             addedBy: sourceLabel,
             user: 'Static User',
-            plannedEnd: '' // Ensure no end time is set
+            plannedEnd: '' 
         };
     });
 
-    setTasks(prev => [...prev, ...enrichedTasks]);
+    try {
+        // SAVE TO DB: This persists data across refreshes
+        await saveTasksBatch(enrichedTasks);
+        
+        // We do NOT need setTasks() here because the subscribeToTasks listener 
+        // in the useEffect above will automatically detect the new data 
+        // in Firebase and update the UI.
+    } catch (error) {
+        console.error("Failed to save imported tasks", error);
+        alert("Failed to save tasks to database.");
+    }
   };
 
   const dayData = useMemo(() => calculateStats(tasks, currentTime), [tasks, currentTime]);
@@ -218,7 +258,7 @@ export default function App() {
 
             {viewMode === 'timeline' && <TimelineView tasks={tasks} shifts={shifts} currentTime={currentTime} onSelectTask={setSelectedTask} />}
             {viewMode === 'report' && <ReportView tasks={tasks} />}
-            {viewMode === 'tasks' && <TasksListView tasks={tasks} onSelectTask={setSelectedTask} />}
+            {viewMode === 'tasks' && <TasksListView tasks={tasks} onSelectTask={handleEditTask} />}
           </>
         )}
 
@@ -226,12 +266,15 @@ export default function App() {
 
       {selectedTask && <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)} onUpdate={handleUpdateTask} shiftLead={currentShift.lead} />}
       
+      {editingTask && <EditTaskModal task={editingTask} onClose={handleEditTaskClose} onUpdate={handleEditTaskUpdate} />}
+      
       {isManageShiftsOpen && (
         <ShiftManager 
           shifts={shifts} 
           onSave={setShifts} 
           onClose={() => setIsManageShiftsOpen(false)} 
           onDataAction={handleDataAction} 
+          onViewTasks={() => setViewMode('tasks')}
         />
       )}
     </div>

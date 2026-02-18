@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Settings, Edit2, Trash2, Plus, Save, X, Database, AlertTriangle, RefreshCw, ArchiveRestore } from 'lucide-react';
+import { Settings, Edit2, Trash2, Plus, Save, X, Database, AlertTriangle, RefreshCw, ArchiveRestore, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 
-const ShiftManager = ({ shifts, onSave, onClose, onDataAction }) => {
+const ShiftManager = ({ shifts, onSave, onClose, onDataAction, onViewTasks }) => {
   const [localShifts, setLocalShifts] = useState(shifts);
   const [editingId, setEditingId] = useState(null);
   const [tempShift, setTempShift] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null); // { type: 'clear_demo' | 'delete_all', title: '', desc: '' }
+  
+  // Dialog States
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processSuccess, setProcessSuccess] = useState(false);
 
   const handleEdit = (shift) => {
     setEditingId(shift.id);
@@ -62,14 +66,32 @@ const ShiftManager = ({ shifts, onSave, onClose, onDataAction }) => {
     onClose();
   };
 
-  const executeConfirmAction = () => {
+  const executeConfirmAction = async () => {
     if (confirmAction) {
-        onDataAction(confirmAction.type);
-        setConfirmAction(null);
-        // UPDATED: Close the manager window for ALL confirmed actions
-        // so the user can immediately see the result on the dashboard.
-        onClose(); 
+        setIsProcessing(true);
+        try {
+            // Perform the action
+            await onDataAction(confirmAction.type);
+            
+            // Artificial delay for smooth UX
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            setIsProcessing(false);
+            setProcessSuccess(true);
+        } catch (error) {
+            console.error(error);
+            setIsProcessing(false);
+            setConfirmAction(null);
+            alert("An error occurred while processing.");
+        }
     }
+  };
+
+  const handleSuccessClose = () => {
+      setProcessSuccess(false);
+      setConfirmAction(null);
+      onClose();
+      if (onViewTasks) onViewTasks();
   };
 
   return (
@@ -128,6 +150,7 @@ const ShiftManager = ({ shifts, onSave, onClose, onDataAction }) => {
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 pb-6 md:pt-0">
+             {/* ... (Existing Shift Configuration UI) ... */}
              <div className="flex justify-between items-end mb-6">
                  <div>
                     <h3 className="text-xl font-bold text-slate-800">Shift Configuration</h3>
@@ -241,19 +264,58 @@ const ShiftManager = ({ shifts, onSave, onClose, onDataAction }) => {
             <button onClick={saveAll} className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl transition-all">Apply Configuration</button>
           </div>
           
-          {/* Confirmation Modal Overlay */}
-          {confirmAction && (
-              <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in">
-                  <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-6 max-w-sm w-full text-center ring-1 ring-slate-100">
-                      <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmAction.type === 'delete_all' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
-                          <AlertTriangle size={24}/>
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-2">{confirmAction.title}</h3>
-                      <p className="text-sm text-slate-500 mb-6 leading-relaxed">{confirmAction.desc}</p>
-                      <div className="flex gap-3">
-                          <button onClick={() => setConfirmAction(null)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50">Cancel</button>
-                          <button onClick={executeConfirmAction} className={`flex-1 px-4 py-2 rounded-lg text-white font-medium shadow-md ${confirmAction.type === 'delete_all' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-500 hover:bg-amber-600'}`}>Confirm</button>
-                      </div>
+          {/* --- SMART INTERACTIVE OVERLAY --- */}
+          {(confirmAction || isProcessing || processSuccess) && (
+              <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+                  <div className="bg-white border border-slate-100 shadow-2xl shadow-indigo-500/10 rounded-3xl p-8 max-w-sm w-full text-center ring-1 ring-slate-50">
+                      
+                      {/* STATE 1: LOADING */}
+                      {isProcessing && (
+                          <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
+                             <div className="relative mb-4">
+                               <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
+                               <div className="absolute inset-0 flex items-center justify-center">
+                                 <RefreshCw size={20} className="text-indigo-500 animate-pulse"/>
+                               </div>
+                             </div>
+                             <h3 className="text-xl font-bold text-slate-800 mb-1">Processing...</h3>
+                             <p className="text-sm text-slate-500">Cleaning up database records.</p>
+                          </div>
+                      )}
+
+                      {/* STATE 2: SUCCESS */}
+                      {processSuccess && (
+                          <div className="flex flex-col items-center animate-in zoom-in-95 duration-300">
+                             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-100">
+                                <CheckCircle2 size={32} strokeWidth={3} />
+                             </div>
+                             <h3 className="text-xl font-bold text-slate-800 mb-2">Cleanup Complete!</h3>
+                             <p className="text-sm text-slate-500 mb-6">Demo tasks have been successfully removed.</p>
+                             <button 
+                                onClick={handleSuccessClose}
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                             >
+                                View Tasks <ArrowRight size={18}/>
+                             </button>
+                          </div>
+                      )}
+
+                      {/* STATE 3: CONFIRMATION (Initial) */}
+                      {!isProcessing && !processSuccess && confirmAction && (
+                          <div className="animate-in fade-in slide-in-from-bottom-2">
+                             <div className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${confirmAction.type === 'delete_all' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                                <AlertTriangle size={28}/>
+                             </div>
+                             <h3 className="text-xl font-bold text-slate-800 mb-2">{confirmAction.title}</h3>
+                             <p className="text-sm text-slate-500 mb-8 leading-relaxed px-2">{confirmAction.desc}</p>
+                             <div className="flex gap-3">
+                                <button onClick={() => setConfirmAction(null)} className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 transition-colors">Cancel</button>
+                                <button onClick={executeConfirmAction} className={`flex-1 px-4 py-3 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 ${confirmAction.type === 'delete_all' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'}`}>
+                                    Confirm
+                                </button>
+                             </div>
+                          </div>
+                      )}
                   </div>
               </div>
           )}
