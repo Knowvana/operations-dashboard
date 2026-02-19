@@ -8,7 +8,6 @@ import TasksListView from './components/TasksListView';
 import TaskModal from './components/TaskModal';
 import EditTaskModal from './components/EditTaskModal';
 import ShiftManager from './components/ShiftManager';
-import ImportTasksModal from './components/ImportTasksModal';
 import EmptyState from './components/EmptyState';
 import ConfirmationModal from './components/ConfirmationModal';
 import { formatTime, isTimeInShift, calculateStats } from './utils/utils';
@@ -31,9 +30,11 @@ export default function App() {
   const [editingTask, setEditingTask] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [viewMode, setViewMode] = useState('timeline');
-  const [isManageShiftsOpen, setIsManageShiftsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true); 
-  const [importModalOpen, setImportModalOpen] = useState(false);
+  
+  // Unified Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('shifts');
   
   const [confirmAction, setConfirmAction] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,32 +70,15 @@ export default function App() {
   }, [user]);
 
   const handleUpdateTask = async (taskId, updates) => { 
-    // This is primarily used for status updates in the current UI.
-    // Since we removed execution fields from the DB, we only call updateTask
-    // if there are definition changes (which TaskModal usually doesn't do).
-    // For now, we pass it through, but firebaseService will filter out invalid fields.
-    try { 
-      await updateTask(taskId, updates); 
-    } catch (e) { 
-      console.error(e); 
-    } 
+    try { await updateTask(taskId, updates); } catch (e) { console.error(e); } 
   };
   
-  const handleEditTask = (task) => {
-    setEditingTask(task);
-  };
-
-  const handleEditTaskClose = () => {
-    setEditingTask(null);
-  };
+  const handleEditTask = (task) => setEditingTask(task);
+  const handleEditTaskClose = () => setEditingTask(null);
 
   const handleEditTaskUpdate = async (taskId, updates) => {
-    try {
-      await updateTask(taskId, updates);
-      setEditingTask(null);
-    } catch (e) {
-      console.error(e);
-    }
+    try { await updateTask(taskId, updates); setEditingTask(null); } 
+    catch (e) { console.error(e); }
   };
   
   const handleDataAction = async (actionDetails) => {
@@ -108,17 +92,10 @@ export default function App() {
     setIsProcessing(true);
     try {
         switch (confirmAction.type) {
-            case 'load_demo':
-                await generateFullSchedule();
-                break;
-            case 'clear_demo':
-                await deleteDemoTasks();
-                break;
-            case 'delete_all':
-                await deleteAllTasks();
-                break;
-            default:
-                console.warn(`Unknown action type: ${confirmAction.type}`);
+            case 'load_demo': await generateFullSchedule(); break;
+            case 'clear_demo': await deleteDemoTasks(); break;
+            case 'delete_all': await deleteAllTasks(); break;
+            default: console.warn(`Unknown action type: ${confirmAction.type}`);
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProcessSuccess(true);
@@ -140,17 +117,11 @@ export default function App() {
 
   const handleImportTasks = async (importedTasks, sourceLabel = 'Import') => {
     const processedTasks = importedTasks.map(t => {
-        // Construct the strict schema object
         const taskName = t.taskName || t.title || 'Untitled Task';
-        
-        // Generate unique ID
         const taskId = t.taskId || `task_${taskName.replace(/\s+/g, '_')}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // User Info
         const addedByUserValue = user ? (user.displayName || user.email || 'User') : 'Guest';
 
         return {
-            // STRICT FIELDS
             taskId: taskId,
             taskName: taskName,
             AddedByProcess: sourceLabel === 'Manual' ? 'Manual_Entry' : 'System_Import',
@@ -170,6 +141,11 @@ export default function App() {
     }
   };
 
+  const openSettings = (tab = 'shifts') => {
+    setSettingsTab(tab);
+    setIsSettingsOpen(true);
+  };
+
   const dayData = useMemo(() => calculateStats(tasks, currentTime), [tasks, currentTime]);
   const shiftData = useMemo(() => {
     const shiftTasks = tasks.filter(t => isTimeInShift(t.plannedStart, currentShift.start, currentShift.end));
@@ -187,22 +163,14 @@ export default function App() {
         complianceStatus={complianceStatus} 
         timeRemaining={`${19 - currentTime.getHours()}h ${60 - currentTime.getMinutes()}m`}
         shiftDetails={currentShift}
-        onOpenSettings={() => setIsManageShiftsOpen(true)}
-        onOpenImport={() => setImportModalOpen(true)}
-      />
-      
-      <ImportTasksModal 
-        open={importModalOpen} 
-        onClose={() => setImportModalOpen(false)} 
-        onImport={handleImportTasks} 
-        onViewTasks={() => setViewMode('tasks')} 
+        onOpenSettings={() => openSettings('shifts')}
+        onOpenImport={() => openSettings('import')}
       />
       
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {tasks.length === 0 ? (
           <EmptyState 
-            onImport={() => setImportModalOpen(true)} 
+            onImport={() => openSettings('import')} 
             onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'This will add a set of sample tasks to your board. Is that okay?'})} 
           />
         ) : (
@@ -245,22 +213,23 @@ export default function App() {
             {viewMode === 'tasks' && <TasksListView tasks={tasks} onSelectTask={handleEditTask} />}
           </>
         )}
-
       </main>
 
       {selectedTask && <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)} onUpdate={handleUpdateTask} shiftLead={currentShift.lead} />}
-      
       {editingTask && <EditTaskModal task={editingTask} onClose={handleEditTaskClose} onUpdate={handleEditTaskUpdate} />}
       
-      {isManageShiftsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 transition-all duration-300">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-100 flex overflow-hidden max-h-[90vh] relative">
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-slate-100 flex overflow-hidden h-[85vh] relative">
             <ShiftManager 
               shifts={shifts} 
               onSave={setShifts} 
-              onClose={() => setIsManageShiftsOpen(false)} 
+              onClose={() => setIsSettingsOpen(false)} 
               onDataAction={handleDataAction}
               onViewTasks={() => setViewMode('tasks')}
+              initialTab={settingsTab}
+              onImport={handleImportTasks}
+              existingTasks={tasks}
             />
             
             <ConfirmationModal
@@ -271,12 +240,12 @@ export default function App() {
               onCancel={resetConfirmationState}
               onSuccessClose={() => {
                   resetConfirmationState();
-                  setIsManageShiftsOpen(false); 
+                  setIsSettingsOpen(false); 
                   setViewMode('tasks'); 
               }}
               onViewTasks={() => {
                   resetConfirmationState();
-                  setIsManageShiftsOpen(false); 
+                  setIsSettingsOpen(false); 
                   setViewMode('tasks'); 
               }}
             />

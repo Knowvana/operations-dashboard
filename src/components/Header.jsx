@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Clock, User, Users, Settings } from 'lucide-react';
+import { Activity, Clock, User, Users, Settings, Upload } from 'lucide-react';
 
 const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings, onOpenImport }) => {
   return (
@@ -22,7 +22,7 @@ const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings,
             {/* Divider */}
             <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block"></div>
 
-            {/* Active Shift Details (Rich Header Version) */}
+            {/* Active Shift Details */}
             <div className="hidden md:flex items-center gap-6">
                 <div className="flex flex-col">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Current Shift</span>
@@ -65,10 +65,9 @@ const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings,
             </div>
             <button
               onClick={onOpenImport}
-              className="h-10 px-4 rounded-full bg-gradient-to-r from-green-400 via-teal-400 to-blue-400 text-white font-bold shadow-lg hover:from-green-500 hover:to-blue-500 transition-all text-sm mr-2"
-              style={{boxShadow:'0 2px 16px 0 rgba(34,197,94,0.08)' }}
+              className="h-10 px-5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/20 hover:from-teal-600 hover:to-emerald-600 transition-all text-sm flex items-center gap-2 mr-2"
             >
-              Import Tasks
+              <Upload size={16} /> Import Tasks
             </button>
             <button 
               onClick={onOpenSettings}
