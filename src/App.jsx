@@ -8,8 +8,11 @@ import TasksListView from './components/TasksListView';
 import TaskModal from './components/TaskModal';
 import EditTaskModal from './components/EditTaskModal';
 import ShiftManager from './components/ShiftManager';
+import ImportTasksModal from './components/ImportTasksModal';
 import EmptyState from './components/EmptyState';
 import ConfirmationModal from './components/ConfirmationModal';
+// Ensure this path matches your renamed folder exactly!
+import ShiftRosterApp from './modules/roster/ShiftRosterApp'; 
 import { formatTime, isTimeInShift, calculateStats } from './utils/utils';
 import { 
   initializeFirebase, 
@@ -24,6 +27,9 @@ import {
 } from './services/firebaseService';
 
 export default function App() {
+  // --- Module State (THIS CONTROLS WHICH APP YOU SEE) ---
+  const [activeModule, setActiveModule] = useState('ops_monitor'); // 'ops_monitor' | 'roster_planner'
+
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]); 
   const [selectedTask, setSelectedTask] = useState(null);
@@ -32,7 +38,6 @@ export default function App() {
   const [viewMode, setViewMode] = useState('timeline');
   const [isLoading, setIsLoading] = useState(true); 
   
-  // Unified Settings State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('shifts');
   
@@ -69,82 +74,46 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleUpdateTask = async (taskId, updates) => { 
-    try { await updateTask(taskId, updates); } catch (e) { console.error(e); } 
-  };
-  
+  // Handlers ...
+  const handleUpdateTask = async (taskId, updates) => { try { await updateTask(taskId, updates); } catch (e) { console.error(e); } };
   const handleEditTask = (task) => setEditingTask(task);
   const handleEditTaskClose = () => setEditingTask(null);
-
-  const handleEditTaskUpdate = async (taskId, updates) => {
-    try { await updateTask(taskId, updates); setEditingTask(null); } 
-    catch (e) { console.error(e); }
-  };
-  
-  const handleDataAction = async (actionDetails) => {
-    if (!user) return;
-    setConfirmAction(actionDetails);
-  };
+  const handleEditTaskUpdate = async (taskId, updates) => { try { await updateTask(taskId, updates); setEditingTask(null); } catch (e) { console.error(e); } };
+  const handleDataAction = async (actionDetails) => { if (!user) return; setConfirmAction(actionDetails); };
 
   const executeConfirmedAction = async () => {
     if (!confirmAction) return;
-
     setIsProcessing(true);
     try {
         switch (confirmAction.type) {
             case 'load_demo': await generateFullSchedule(); break;
             case 'clear_demo': await deleteDemoTasks(); break;
             case 'delete_all': await deleteAllTasks(); break;
-            default: console.warn(`Unknown action type: ${confirmAction.type}`);
+            default: break;
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProcessSuccess(true);
     } catch (e) {
-        console.error("Data action failed:", e);
-        setIsProcessing(false);
-        setConfirmAction(null);
-        alert("An error occurred. Please try again.");
-    } finally {
-        setIsProcessing(false);
-    }
+        console.error(e); alert("An error occurred.");
+    } finally { setIsProcessing(false); }
   };
 
-  const resetConfirmationState = () => {
-    setConfirmAction(null);
-    setIsProcessing(false);
-    setProcessSuccess(false);
-  };
+  const resetConfirmationState = () => { setConfirmAction(null); setIsProcessing(false); setProcessSuccess(false); };
 
   const handleImportTasks = async (importedTasks, sourceLabel = 'Import') => {
     const processedTasks = importedTasks.map(t => {
         const taskName = t.taskName || t.title || 'Untitled Task';
         const taskId = t.taskId || `task_${taskName.replace(/\s+/g, '_')}_${Math.random().toString(36).substr(2, 9)}`;
         const addedByUserValue = user ? (user.displayName || user.email || 'User') : 'Guest';
-
         return {
-            taskId: taskId,
-            taskName: taskName,
-            AddedByProcess: sourceLabel === 'Manual' ? 'Manual_Entry' : 'System_Import',
-            AddedByUser: addedByUserValue,
-            category: t.category || 'General',
-            createdAt: new Date().toISOString(),
-            cron_schedule: t.cron_schedule || '* * * * *'
+            taskId: taskId, taskName: taskName, AddedByProcess: sourceLabel === 'Manual' ? 'Manual_Entry' : 'System_Import',
+            AddedByUser: addedByUserValue, category: t.category || 'General', createdAt: new Date().toISOString(), cron_schedule: t.cron_schedule || '* * * * *'
         };
     });
-
-    try {
-        await saveTasksBatch(processedTasks);
-    } catch (error) {
-        console.error("Failed to save imported tasks", error);
-        alert("Failed to save tasks: " + error.message);
-        throw error;
-    }
+    try { await saveTasksBatch(processedTasks); } catch (error) { throw error; }
   };
 
-  const openSettings = (tab = 'shifts') => {
-    setSettingsTab(tab);
-    setIsSettingsOpen(true);
-  };
+  const openSettings = (tab = 'shifts') => { setSettingsTab(tab); setIsSettingsOpen(true); };
 
   const dayData = useMemo(() => calculateStats(tasks, currentTime), [tasks, currentTime]);
   const shiftData = useMemo(() => {
@@ -156,6 +125,12 @@ export default function App() {
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-light">Loading environment...</div>;
 
+  // --- ROUTING / MODULE SWITCHER ---
+  if (activeModule === 'roster_planner') {
+    return <ShiftRosterApp onSwitchModule={() => setActiveModule('ops_monitor')} />;
+  }
+
+  // --- DEFAULT ZEN-OPS MONITOR MODULE ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 font-sans text-slate-800">
       
@@ -165,14 +140,12 @@ export default function App() {
         shiftDetails={currentShift}
         onOpenSettings={() => openSettings('shifts')}
         onOpenImport={() => openSettings('import')}
+        onSwitchModule={() => setActiveModule('roster_planner')} // PASSING PROP TO HEADER
       />
       
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {tasks.length === 0 ? (
-          <EmptyState 
-            onImport={() => openSettings('import')} 
-            onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'This will add a set of sample tasks to your board. Is that okay?'})} 
-          />
+          <EmptyState onImport={() => openSettings('import')} onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'Add demo tasks?'})} />
         ) : (
           <>
             <ShiftDashboard dayData={dayData} shiftData={shiftData} shiftDetails={currentShift} />
@@ -187,24 +160,9 @@ export default function App() {
                 </span>
               </h2>
               <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-                <button 
-                  onClick={() => setViewMode('timeline')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <Activity size={14} /> Timeline
-                </button>
-                <button 
-                  onClick={() => setViewMode('report')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'report' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <BarChart2 size={14} /> Analytics
-                </button>
-                <button 
-                  onClick={() => setViewMode('tasks')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'tasks' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <List size={14} /> All Tasks
-                </button>
+                <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Activity size={14} /> Timeline</button>
+                <button onClick={() => setViewMode('report')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'report' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><BarChart2 size={14} /> Analytics</button>
+                <button onClick={() => setViewMode('tasks')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'tasks' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><List size={14} /> All Tasks</button>
               </div>
             </div>
 
@@ -222,32 +180,15 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all duration-300">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-slate-100 flex overflow-hidden h-[85vh] relative">
             <ShiftManager 
-              shifts={shifts} 
-              onSave={setShifts} 
-              onClose={() => setIsSettingsOpen(false)} 
-              onDataAction={handleDataAction}
-              onViewTasks={() => setViewMode('tasks')}
-              initialTab={settingsTab}
-              onImport={handleImportTasks}
-              existingTasks={tasks}
+              shifts={shifts} onSave={setShifts} onClose={() => setIsSettingsOpen(false)} 
+              onDataAction={handleDataAction} onViewTasks={() => setViewMode('tasks')}
+              initialTab={settingsTab} onImport={handleImportTasks} existingTasks={tasks}
             />
-            
             <ConfirmationModal
-              action={confirmAction}
-              isProcessing={isProcessing}
-              isSuccess={processSuccess}
-              onConfirm={executeConfirmedAction}
-              onCancel={resetConfirmationState}
-              onSuccessClose={() => {
-                  resetConfirmationState();
-                  setIsSettingsOpen(false); 
-                  setViewMode('tasks'); 
-              }}
-              onViewTasks={() => {
-                  resetConfirmationState();
-                  setIsSettingsOpen(false); 
-                  setViewMode('tasks'); 
-              }}
+              action={confirmAction} isProcessing={isProcessing} isSuccess={processSuccess}
+              onConfirm={executeConfirmedAction} onCancel={resetConfirmationState}
+              onSuccessClose={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
+              onViewTasks={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
             />
           </div>
         </div>

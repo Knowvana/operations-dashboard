@@ -1,7 +1,7 @@
 import React from 'react';
-import { Activity, Clock, User, Users, Settings, Upload } from 'lucide-react';
+import { Activity, Clock, User, Users, Settings, Upload, Calendar } from 'lucide-react';
 
-const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings, onOpenImport }) => {
+const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings, onOpenImport, onSwitchModule }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -55,7 +55,7 @@ const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings,
           </div>
 
           {/* Right: Timer & Settings */}
-          <div className="flex items-center gap-5 justify-end">
+          <div className="flex items-center gap-4 justify-end">
             <div className="text-right hidden sm:block bg-gradient-to-r from-slate-50 to-white px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm">
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Shift Ends</p>
               <div className="flex items-center justify-end gap-2">
@@ -63,11 +63,21 @@ const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings,
                  <p className="text-xl font-mono font-bold text-indigo-600 tabular-nums tracking-tight leading-none">{shiftDetails.end}</p>
               </div>
             </div>
+
+            {/* ---> NEW MODULE SWITCHER BUTTON <--- */}
+            <button
+              onClick={onSwitchModule}
+              className="h-10 px-4 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-100 hover:bg-blue-600 hover:text-white transition-all text-sm flex items-center gap-2 mr-2"
+            >
+              <Calendar size={16} /> OpsRoster
+            </button>
+
             <button
               onClick={onOpenImport}
-              className="h-10 px-5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/20 hover:from-teal-600 hover:to-emerald-600 transition-all text-sm flex items-center gap-2 mr-2"
+              className="h-10 px-4 rounded-full bg-gradient-to-r from-green-400 via-teal-400 to-blue-400 text-white font-bold shadow-lg hover:from-green-500 hover:to-blue-500 transition-all text-sm"
+              style={{boxShadow:'0 2px 16px 0 rgba(34,197,94,0.08)' }}
             >
-              <Upload size={16} /> Import Tasks
+              Import Tasks
             </button>
             <button 
               onClick={onOpenSettings}
