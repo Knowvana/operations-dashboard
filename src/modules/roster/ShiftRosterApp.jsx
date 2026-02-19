@@ -3,109 +3,12 @@ import {
   Calendar, Users, Settings, Sun, Moon, Sunrise, Clock, Download, RefreshCw, AlertCircle, Plus, X, Grid, List, CalendarDays, ChevronLeft, ChevronRight, Trash2, User, BarChart3, CheckCircle2, CalendarX2, Info, ArrowLeft, Activity
 } from 'lucide-react';
 
-// --- Utility & Logic Functions ---
-const INITIAL_SHIFTS = [
-  { id: 'morning', label: 'Morning', time: '06:00 - 14:00', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', reqWeekday: 2, reqWeekend: 2 },
-  { id: 'afternoon', label: 'Afternoon', time: '14:00 - 22:00', color: 'bg-blue-100 text-blue-800 border-blue-200', reqWeekday: 12, reqWeekend: 12 },
-  { id: 'evening', label: 'Evening', time: '22:00 - 06:00', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', reqWeekday: 2, reqWeekend: 2 }
-];
+// Imported Modular Logic & Data
+import rosterDefaults from '../../data/rosterDefaults.json';
+import { COLORS, WEEKDAYS } from './utils/rosterConstants';
+import { getSafeDateKey, generateRoster } from './utils/rosterUtils';
 
-const COLORS = [
-  { label: 'Yellow', value: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { label: 'Blue', value: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { label: 'Indigo', value: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-  { label: 'Green', value: 'bg-green-100 text-green-800 border-green-200' },
-  { label: 'Red', value: 'bg-red-100 text-red-800 border-red-200' },
-  { label: 'Purple', value: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { label: 'Pink', value: 'bg-pink-100 text-pink-800 border-pink-200' },
-  { label: 'Gray', value: 'bg-gray-100 text-gray-800 border-gray-200' },
-];
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const generateDummyEmployees = (count) => {
-  const names = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Heidi", "Ivan", "Judy", "Kevin", "Liam", "Mia", "Noah", "Olivia", "Peter", "Quinn", "Rachel", "Steve", "Tina", "Uma", "Victor", "Wendy", "Xavier", "Yara"];
-  return Array.from({ length: count }, (_, i) => ({
-    id: `emp-${i + 1}`,
-    name: names[i % names.length] + (i >= names.length ? ` ${Math.floor(i/names.length) + 1}` : ''),
-    role: 'Operator'
-  }));
-};
-
-const getSafeDateKey = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
-
-const generateRoster = (employees, shifts, baseYear, baseMonth, leaves = []) => {
-  const roster = {}; 
-  const employeeStats = {}; 
-  
-  employees.forEach(emp => {
-    employeeStats[emp.id] = { totalDaysWorked: 0, weekendDaysWorked: 0, weeklyDetails: {} };
-  });
-
-  const startDate = new Date(baseYear, baseMonth - 1, 1);
-  const endDate = new Date(baseYear, baseMonth + 2, 0); 
-  const shuffle = (array) => array.sort(() => Math.random() - 0.5);
-
-  let currentLoopDate = new Date(startDate);
-
-  while (currentLoopDate <= endDate) {
-    const dateKey = getSafeDateKey(currentLoopDate);
-    const dayOfWeek = currentLoopDate.getDay(); 
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
-    const weekStart = new Date(currentLoopDate);
-    weekStart.setDate(currentLoopDate.getDate() - dayOfWeek);
-    const weekKey = getSafeDateKey(weekStart);
-
-    roster[dateKey] = {};
-    shifts.forEach(s => roster[dateKey][s.id] = []);
-
-    for (const shift of shifts) {
-      let needed = isWeekend ? shift.reqWeekend : shift.reqWeekday;
-      
-      let candidates = employees.filter(emp => {
-        const isOnLeave = leaves.some(l => l.empId === emp.id && l.date === dateKey);
-        if (isOnLeave) return false;
-
-        const workedToday = roster[dateKey] && Object.values(roster[dateKey]).some(list => list.includes(emp.id));
-        if (workedToday) return false;
-
-        const daysWorkedThisWeek = employeeStats[emp.id].weeklyDetails[weekKey] || 0;
-        if (daysWorkedThisWeek >= 5) return false;
-
-        return true;
-      });
-
-      candidates = shuffle(candidates);
-      candidates.sort((a, b) => {
-        const statsA = employeeStats[a.id];
-        const statsB = employeeStats[b.id];
-        if (isWeekend) {
-          if (statsA.weekendDaysWorked !== statsB.weekendDaysWorked) return statsA.weekendDaysWorked - statsB.weekendDaysWorked;
-        }
-        return statsA.totalDaysWorked - statsB.totalDaysWorked;
-      });
-      
-      const chosen = candidates.slice(0, needed);
-
-      chosen.forEach(worker => {
-        roster[dateKey][shift.id].push(worker.id);
-        employeeStats[worker.id].totalDaysWorked += 1;
-        if (isWeekend) employeeStats[worker.id].weekendDaysWorked += 1;
-        if (!employeeStats[worker.id].weeklyDetails[weekKey]) employeeStats[worker.id].weeklyDetails[weekKey] = 0;
-        employeeStats[worker.id].weeklyDetails[weekKey] += 1;
-      });
-    }
-    currentLoopDate.setDate(currentLoopDate.getDate() + 1);
-  }
-  return { roster, employeeStats };
-};
-
+// Sub-Component
 const ShiftBadge = ({ shift, count, className = "" }) => {
   if (!shift) return null;
   const Icon = shift.id.includes('morning') ? Sunrise : (shift.id.includes('afternoon') ? Sun : (shift.id.includes('evening') || shift.id.includes('night') ? Moon : Clock));
@@ -123,10 +26,11 @@ export default function ShiftRosterApp({ onSwitchModule }) {
   const [viewMode, setViewMode] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const [employees, setEmployees] = useState(generateDummyEmployees(25));
-  const [shifts, setShifts] = useState(INITIAL_SHIFTS);
-  const [newEmployeeName, setNewEmployeeName] = useState('');
+  // Initialize from our JSON defaults
+  const [employees, setEmployees] = useState(rosterDefaults.initialEmployees);
+  const [shifts, setShifts] = useState(rosterDefaults.initialShifts);
   
+  const [newEmployeeName, setNewEmployeeName] = useState('');
   const [newShift, setNewShift] = useState({ label: '', time: '', color: COLORS[0].value, reqWeekday: 0, reqWeekend: 0 });
   const [leaves, setLeaves] = useState([]);
   const [newLeave, setNewLeave] = useState({ empId: '', date: '' });
