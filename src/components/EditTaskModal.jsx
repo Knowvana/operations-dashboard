@@ -3,29 +3,42 @@ import { X, Save, Type, Tag, Sparkles } from 'lucide-react';
 import CronBuilder from './CronBuilder';
 
 const EditTaskModal = ({ task, onClose, onUpdate }) => {
-  const [details, setDetails] = useState({ title: task.title || '', type: task.type || '' });
+  // Only bind to fields present in the schema
+  const [details, setDetails] = useState({ 
+    taskName: task.taskName || task.title || '', 
+    category: task.category || task.type || '' 
+  });
+  
   const [schedule, setSchedule] = useState({
-    cronExpression: task.cronExpression || '0 9 * * *',
-    frequency: task.frequency || 'Daily',
-    plannedStart: task.plannedStart || '09:00'
+    cron_schedule: task.cron_schedule || task.cronExpression || '0 9 * * *'
   });
 
   const handleDetailChange = (e) => setDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleScheduleChange = (newSchedule) => setSchedule(prev => ({ ...prev, ...newSchedule }));
+  
+  // Update internal state when CronBuilder changes
+  // CronBuilder emits { cron, frequency, plannedStart } but we only care about 'cron' for the DB
+  const handleScheduleChange = (newSchedule) => {
+    setSchedule(prev => ({ ...prev, cron_schedule: newSchedule.cron }));
+  };
   
   const handleSave = () => {
+    // Only send the allowed schema fields
     onUpdate(task.id, {
-      ...details, ...schedule, updatedAt: new Date().toISOString(), updatedBy: 'System Admin'
+      taskId: task.taskId, // keep ID
+      taskName: details.taskName,
+      category: details.category,
+      cron_schedule: schedule.cron_schedule,
+      // Metadata
+      AddedByUser: 'System_Admin', // Or pass user from props if available
+      // createdAt is immutable
     });
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      {/* Reverted to bg-white for a clean, professional look */}
       <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-slate-200">
         
-        {/* --- Header --- */}
         <div className="px-8 py-6 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex justify-between items-center sticky top-0 z-20">
           <div className="flex items-center gap-5">
             <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm ring-1 ring-indigo-50">
@@ -47,10 +60,8 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
           </button>
         </div>
 
-        {/* --- Scrollable Body --- */}
         <div className="overflow-y-auto p-8 space-y-10 bg-white scroll-smooth">
           
-          {/* Section 1: Task Identity */}
           <section className="space-y-5">
             <div className="flex items-center gap-3">
                <div className="h-px bg-slate-100 flex-1"></div>
@@ -59,7 +70,6 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Name Input */}
               <div className="group relative">
                 <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">Task Name</label>
                 <div className="relative">
@@ -67,13 +77,12 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
                     <Type size={18} />
                   </div>
                   <input 
-                    name="title" value={details.title} onChange={handleDetailChange} placeholder="e.g. Database Backup"
+                    name="taskName" value={details.taskName} onChange={handleDetailChange} placeholder="e.g. Database Backup"
                     className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 font-semibold placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300"
                   />
                 </div>
               </div>
 
-              {/* Category Input */}
               <div className="group relative">
                 <label className="block text-xs font-bold text-slate-500 mb-2 ml-1">Category</label>
                 <div className="relative">
@@ -81,7 +90,7 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
                     <Tag size={18} />
                   </div>
                   <input 
-                    name="type" value={details.type} onChange={handleDetailChange} placeholder="e.g. Maintenance"
+                    name="category" value={details.category} onChange={handleDetailChange} placeholder="e.g. Maintenance"
                     className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 font-semibold placeholder:text-slate-400 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300"
                   />
                 </div>
@@ -89,7 +98,6 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
             </div>
           </section>
 
-          {/* Section 2: Scheduler */}
           <section className="space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 w-full">
@@ -99,13 +107,11 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
                 </div>
              </div>
              
-             {/* The Schedule Builder */}
-             <CronBuilder value={schedule.cronExpression} onChange={handleScheduleChange} />
+             <CronBuilder value={schedule.cron_schedule} onChange={handleScheduleChange} />
           </section>
 
         </div>
 
-        {/* --- Footer --- */}
         <div className="bg-white/80 backdrop-blur-xl px-8 py-6 border-t border-slate-100 flex justify-end items-center gap-4 sticky bottom-0 z-20 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.03)]">
           <button 
             onClick={onClose} 

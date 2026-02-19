@@ -28,6 +28,24 @@ let app, auth, db;
 
 const TASKS_PATH = 'tasks';
 
+// Helper: Extract HH:mm from Cron (Simple)
+const extractTimeFromCron = (cron) => {
+  if (!cron) return '';
+  try {
+    const parts = cron.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      const min = parts[0];
+      const hour = parts[1];
+      if (!isNaN(min) && !isNaN(hour)) {
+        return `${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+      }
+    }
+    return ''; 
+  } catch (e) {
+    return '';
+  }
+};
+
 export const initializeFirebase = async () => {
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
@@ -65,8 +83,41 @@ export const subscribeToTasks = (callback) => {
     const tasksRef = collection(db, TASKS_PATH);
     const q = query(tasksRef);
     return onSnapshot(q, (snapshot) => {
-      const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      tasks.sort((a, b) => a.plannedStart.localeCompare(b.plannedStart));
+      const tasks = snapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // --- MAP DB FIELDS TO UI FIELDS ---
+        return { 
+          id: doc.id,
+          // DB Fields
+          taskId: data.taskId,
+          taskName: data.taskName,
+          AddedByProcess: data.AddedByProcess,
+          AddedByUser: data.AddedByUser,
+          category: data.category,
+          createdAt: data.createdAt,
+          cron_schedule: data.cron_schedule,
+
+          // UI Derived Fields (Mocking execution data until TaskExecution table exists)
+          title: data.taskName || 'Untitled',
+          type: data.category || 'General',
+          
+          // Derive plannedStart from cron for Timeline view
+          plannedStart: extractTimeFromCron(data.cron_schedule) || '00:00',
+          
+          // Default status to 'pending' as we don't store execution state in this table anymore
+          status: 'pending', 
+          cronExpression: data.cron_schedule || ''
+        };
+      });
+
+      // Sort by derived time
+      tasks.sort((a, b) => {
+        const tA = a.plannedStart || '';
+        const tB = b.plannedStart || '';
+        return tA.localeCompare(tB);
+      });
+
       callback(tasks);
     }, (error) => {
       console.error("Subscription error:", error);
@@ -80,8 +131,23 @@ export const subscribeToTasks = (callback) => {
 
 export const updateTask = async (taskId, updates) => {
   try {
-    const taskRef = doc(db, TASKS_PATH, taskId);
-    await updateDoc(taskRef, updates);
+    // Filter updates to ONLY allow the 7 specific fields
+    // This prevents 'status', 'actualStart' etc from polluting the definition table
+    const allowedFields = ['taskId', 'taskName', 'AddedByProcess', 'AddedByUser', 'category', 'createdAt', 'cron_schedule'];
+    const filteredUpdates = {};
+    
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key)) {
+        filteredUpdates[key] = updates[key];
+      }
+    });
+
+    if (Object.keys(filteredUpdates).length > 0) {
+      const taskRef = doc(db, TASKS_PATH, taskId);
+      await updateDoc(taskRef, filteredUpdates);
+    } else {
+      console.warn("Update skipped: No valid fields for tasks table");
+    }
   } catch (error) {
     console.error("Error updating task:", error);
     throw error;
@@ -94,41 +160,18 @@ export const generateFullSchedule = async () => {
     const tasksRef = collection(db, TASKS_PATH);
     
     demoTasksData.forEach((t, i) => {
-        const docRef = doc(tasksRef, `demo_task_${i}`);
+        const taskId = `demo_task_${i}`;
+        const docRef = doc(tasksRef, taskId);
         
-        let updatedAt = null;
-        let updatedBy = null;
-        let actualStart = "";
-        let actualEnd = "";
-
-        if (t.status === 'completed') {
-            updatedAt = new Date().toISOString();
-            updatedBy = "System Admin";
-            actualStart = t.start;
-            // Removed automatic actualEnd setting from demo data as per request
-        } else if (t.status === 'in_progress') {
-            updatedAt = new Date().toISOString();
-            updatedBy = "System Admin";
-            actualStart = t.start;
-        }
-
+        // Strict Schema for Demo Data
         batch.set(docRef, {
-            title: t.title,
-            plannedStart: t.start,
-            plannedEnd: "", // Explicitly empty
-            status: t.status,
-            actualStart: actualStart,
-            actualEnd: actualEnd,
-            type: t.type,
-            frequency: t.frequency || "",
-            cronExpression: t.cronExpression || "",
-            manualDate: t.manualDate || "",
-            
-            comments: t.status === 'completed' ? "Executed successfully via automation." : "",
-            updatedAt: updatedAt,
-            updatedBy: updatedBy,
-            createdAt: new Date().toISOString(), 
-            isDemo: true 
+            taskId: taskId,
+            taskName: t.title,
+            AddedByProcess: 'System_Demo',
+            AddedByUser: 'Demo_User',
+            category: t.type,
+            createdAt: new Date().toISOString(),
+            cron_schedule: t.cronExpression || '0 0 * * *'
         });
     });
     
@@ -159,12 +202,14 @@ export const deleteAllTasks = async () => {
 export const deleteDemoTasks = async () => {
   try {
     const tasksRef = collection(db, TASKS_PATH);
-    const q = query(tasksRef, where("isDemo", "==", true));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(tasksRef);
     const batch = writeBatch(db);
     
     snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+      const data = doc.data();
+      if (data.AddedByProcess === 'System_Demo') {
+        batch.delete(doc.ref);
+      }
     });
     
     await batch.commit();
@@ -180,13 +225,24 @@ export const saveTasksBatch = async (tasks) => {
     const tasksRef = collection(db, 'tasks');
     
     tasks.forEach(task => {
-      // Create a reference with the specific ID we generated
-      const docRef = doc(tasksRef, task.id);
-      batch.set(docRef, task);
+      const docRef = doc(tasksRef, task.taskId);
+      
+      // STRICT SCHEMA ENFORCEMENT
+      // Only saving the 7 requested fields
+      batch.set(docRef, {
+        taskId: task.taskId,
+        taskName: task.taskName,
+        AddedByProcess: task.AddedByProcess,
+        AddedByUser: task.AddedByUser,
+        category: task.category,
+        createdAt: task.createdAt,
+        cron_schedule: task.cron_schedule
+      });
     });
     
     await batch.commit();
     console.log(`Successfully saved ${tasks.length} tasks to Firebase.`);
+    return true;
   } catch (error) {
     console.error("Error saving batch tasks:", error);
     throw error;

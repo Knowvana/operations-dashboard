@@ -35,7 +35,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true); 
   const [importModalOpen, setImportModalOpen] = useState(false);
   
-  // States for the generic confirmation modal
   const [confirmAction, setConfirmAction] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processSuccess, setProcessSuccess] = useState(false);
@@ -69,7 +68,17 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleUpdateTask = async (taskId, updates) => { try { await updateTask(taskId, updates); } catch (e) { console.error(e); } };
+  const handleUpdateTask = async (taskId, updates) => { 
+    // This is primarily used for status updates in the current UI.
+    // Since we removed execution fields from the DB, we only call updateTask
+    // if there are definition changes (which TaskModal usually doesn't do).
+    // For now, we pass it through, but firebaseService will filter out invalid fields.
+    try { 
+      await updateTask(taskId, updates); 
+    } catch (e) { 
+      console.error(e); 
+    } 
+  };
   
   const handleEditTask = (task) => {
     setEditingTask(task);
@@ -111,11 +120,10 @@ export default function App() {
             default:
                 console.warn(`Unknown action type: ${confirmAction.type}`);
         }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // UX delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         setProcessSuccess(true);
     } catch (e) {
         console.error("Data action failed:", e);
-        // Reset state on failure
         setIsProcessing(false);
         setConfirmAction(null);
         alert("An error occurred. Please try again.");
@@ -131,28 +139,34 @@ export default function App() {
   };
 
   const handleImportTasks = async (importedTasks, sourceLabel = 'Import') => {
-    const enrichedTasks = importedTasks.map(t => {
-        const title = t.title || t['Task Name'] || 'Untitled Task';
-        const plannedStart = t.plannedStart || t['Schedule'] || '00:00';
-        const type = t.type || t['Category'] || 'General';
-        // ... (rest of mapping)
+    const processedTasks = importedTasks.map(t => {
+        // Construct the strict schema object
+        const taskName = t.taskName || t.title || 'Untitled Task';
         
+        // Generate unique ID
+        const taskId = t.taskId || `task_${taskName.replace(/\s+/g, '_')}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // User Info
+        const addedByUserValue = user ? (user.displayName || user.email || 'User') : 'Guest';
+
         return {
-            ...t,
-            id: t.id || `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            title, plannedStart, type,
-            status: 'pending',
-            createdAt: t.createdAt || new Date().toISOString(),
-            // ... (rest of enrichment)
-            addedBy: sourceLabel,
+            // STRICT FIELDS
+            taskId: taskId,
+            taskName: taskName,
+            AddedByProcess: sourceLabel === 'Manual' ? 'Manual_Entry' : 'System_Import',
+            AddedByUser: addedByUserValue,
+            category: t.category || 'General',
+            createdAt: new Date().toISOString(),
+            cron_schedule: t.cron_schedule || '* * * * *'
         };
     });
 
     try {
-        await saveTasksBatch(enrichedTasks);
+        await saveTasksBatch(processedTasks);
     } catch (error) {
         console.error("Failed to save imported tasks", error);
-        alert("Failed to save tasks to database.");
+        alert("Failed to save tasks: " + error.message);
+        throw error;
     }
   };
 
@@ -249,7 +263,6 @@ export default function App() {
               onViewTasks={() => setViewMode('tasks')}
             />
             
-            {/* Confirmation Modal positioned within the settings modal */}
             <ConfirmationModal
               action={confirmAction}
               isProcessing={isProcessing}
@@ -258,13 +271,13 @@ export default function App() {
               onCancel={resetConfirmationState}
               onSuccessClose={() => {
                   resetConfirmationState();
-                  setIsManageShiftsOpen(false); // Close shift manager if it was open
-                  setViewMode('tasks'); // Go to tasks view
+                  setIsManageShiftsOpen(false); 
+                  setViewMode('tasks'); 
               }}
               onViewTasks={() => {
                   resetConfirmationState();
-                  setIsManageShiftsOpen(false); // Close shift manager
-                  setViewMode('tasks'); // Go to tasks view
+                  setIsManageShiftsOpen(false); 
+                  setViewMode('tasks'); 
               }}
             />
           </div>
