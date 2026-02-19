@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Activity } from 'lucide-react';
-
 import rosterDefaults from '../../data/rosterDefaults.json';
 import { getSafeDateKey, generateRoster } from './utils/rosterUtils';
 import { WEEKDAYS } from './utils/rosterConstants';
 
-// Import our new sub-components
 import RosterConfig from './components/RosterConfig';
 import RosterDashboard from './components/RosterDashboard';
 import RosterReports from './components/RosterReports';
 
-export default function ShiftRosterApp({ onSwitchModule }) {
+export default function ShiftRosterApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewMode, setViewMode] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -92,39 +89,36 @@ export default function ShiftRosterApp({ onSwitchModule }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="w-full max-w-[1800px] mx-auto px-6 md:px-10 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-500/30">
-                <Calendar size={22} />
-              </div>
-              <div>
-                 <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 leading-none">OpsRoster</h1>
-                 <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-1">Planner Module</p>
-              </div>
+    <div className="flex-1 flex flex-col">
+      {/* Sub-Header / Toolbar (No branding) */}
+      <nav className="bg-white border-b border-slate-200 sticky top-[64px] z-40 shadow-sm">
+        <div className="w-full max-w-[1800px] mx-auto px-6 md:px-10 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            {/* Context Title */}
+            <div className="hidden md:block">
+               <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">Roster Management</h2>
+               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Scheduling & Allocation</p>
             </div>
             
+            {/* View Tabs */}
             <div className="flex bg-slate-100 p-1.5 rounded-xl w-full md:w-auto shadow-inner border border-slate-200/60">
-               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
+               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
                 Roster Planner
               </button>
-              <button onClick={() => setActiveTab('reports')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'reports' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
+              <button onClick={() => setActiveTab('reports')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'reports' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
                 Reports
               </button>
-              <button onClick={() => setActiveTab('config')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
+              <button onClick={() => setActiveTab('config')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
                 Configuration & Staff
               </button>
             </div>
-
-            <div className="hidden md:block">
-                <button onClick={onSwitchModule} className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 active:scale-95 shadow-lg shadow-slate-800/20 transition-all">
-                    <Activity size={18}/> Back to Monitor
-                </button>
-            </div>
+            
+            {/* Empty div for flexbox spacing */}
+            <div className="hidden md:block w-48"></div>
         </div>
       </nav>
 
+      {/* Main Content Area */}
       <main className="w-full max-w-[1800px] mx-auto p-6 md:p-8 lg:p-10 flex-1">
         {activeTab === 'dashboard' && (
           <RosterDashboard 

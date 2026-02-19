@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, BarChart2, List } from 'lucide-react'; 
+
+// Import Global Shell
+import GlobalNavigation from './components/GlobalNavigation';
+
 import Header from './components/Header';
 import ShiftDashboard from './components/ShiftDashboard';
 import TimelineView from './components/TimelineView';
@@ -8,27 +12,18 @@ import TasksListView from './components/TasksListView';
 import TaskModal from './components/TaskModal';
 import EditTaskModal from './components/EditTaskModal';
 import ShiftManager from './components/ShiftManager';
-import ImportTasksModal from './components/ImportTasksModal';
 import EmptyState from './components/EmptyState';
 import ConfirmationModal from './components/ConfirmationModal';
-// Ensure this path matches your renamed folder exactly!
 import ShiftRosterApp from './modules/roster/ShiftRosterApp'; 
 import { formatTime, isTimeInShift, calculateStats } from './utils/utils';
 import { 
-  initializeFirebase, 
-  signInUser, 
-  onUserStateChanged,
-  subscribeToTasks,
-  updateTask,
-  generateFullSchedule,
-  deleteAllTasks,
-  deleteDemoTasks,
-  saveTasksBatch
+  initializeFirebase, signInUser, onUserStateChanged, subscribeToTasks,
+  updateTask, generateFullSchedule, deleteAllTasks, deleteDemoTasks, saveTasksBatch
 } from './services/firebaseService';
 
 export default function App() {
-  // --- Module State (THIS CONTROLS WHICH APP YOU SEE) ---
-  const [activeModule, setActiveModule] = useState('ops_monitor'); // 'ops_monitor' | 'roster_planner'
+  // --- Global State ---
+  const [activeModule, setActiveModule] = useState('ops_monitor'); 
 
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]); 
@@ -74,7 +69,6 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  // Handlers ...
   const handleUpdateTask = async (taskId, updates) => { try { await updateTask(taskId, updates); } catch (e) { console.error(e); } };
   const handleEditTask = (task) => setEditingTask(task);
   const handleEditTaskClose = () => setEditingTask(null);
@@ -125,74 +119,84 @@ export default function App() {
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-light">Loading environment...</div>;
 
-  // --- ROUTING / MODULE SWITCHER ---
-  if (activeModule === 'roster_planner') {
-    return <ShiftRosterApp onSwitchModule={() => setActiveModule('ops_monitor')} />;
-  }
-
-  // --- DEFAULT ZEN-OPS MONITOR MODULE ---
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 font-sans text-slate-800">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
       
-      <Header 
-        complianceStatus={complianceStatus} 
-        timeRemaining={`${19 - currentTime.getHours()}h ${60 - currentTime.getMinutes()}m`}
-        shiftDetails={currentShift}
-        onOpenSettings={() => openSettings('shifts')}
-        onOpenImport={() => openSettings('import')}
-        onSwitchModule={() => setActiveModule('roster_planner')} // PASSING PROP TO HEADER
-      />
-      
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {tasks.length === 0 ? (
-          <EmptyState onImport={() => openSettings('import')} onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'Add demo tasks?'})} />
+      {/* 1. THE GLOBAL APP SHELL NAV */}
+      <GlobalNavigation activeModule={activeModule} onSwitchModule={setActiveModule} />
+
+      {/* 2. THE ACTIVE MODULE */}
+      <div className="flex-1 flex flex-col relative">
+        {activeModule === 'roster_planner' ? (
+           
+           <ShiftRosterApp />
+
         ) : (
-          <>
-            <ShiftDashboard dayData={dayData} shiftData={shiftData} shiftDetails={currentShift} />
+           
+           <div className="flex-1 bg-gradient-to-br from-blue-50/50 via-teal-50/50 to-green-50/50">
+              <Header 
+                complianceStatus={complianceStatus} 
+                timeRemaining={`${19 - currentTime.getHours()}h ${60 - currentTime.getMinutes()}m`}
+                shiftDetails={currentShift}
+                onOpenSettings={() => openSettings('shifts')}
+                onOpenImport={() => openSettings('import')}
+              />
+              
+              <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {tasks.length === 0 ? (
+                  <EmptyState onImport={() => openSettings('import')} onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'Add demo tasks?'})} />
+                ) : (
+                  <>
+                    <ShiftDashboard dayData={dayData} shiftData={shiftData} shiftDetails={currentShift} />
 
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                {viewMode === 'timeline' && 'Shift Timeline'}
-                {viewMode === 'report' && 'Analytics Report'}
-                {viewMode === 'tasks' && 'All Tasks'}
-                <span className="text-xs font-normal text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-                  {currentTime.toLocaleDateString()}
-                </span>
-              </h2>
-              <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-                <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Activity size={14} /> Timeline</button>
-                <button onClick={() => setViewMode('report')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'report' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><BarChart2 size={14} /> Analytics</button>
-                <button onClick={() => setViewMode('tasks')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'tasks' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><List size={14} /> All Tasks</button>
-              </div>
-            </div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                        {viewMode === 'timeline' && 'Shift Timeline'}
+                        {viewMode === 'report' && 'Analytics Report'}
+                        {viewMode === 'tasks' && 'All Tasks'}
+                        <span className="text-xs font-normal text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                          {currentTime.toLocaleDateString()}
+                        </span>
+                      </h2>
+                      <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
+                        <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Activity size={14} /> Timeline</button>
+                        <button onClick={() => setViewMode('report')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'report' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><BarChart2 size={14} /> Analytics</button>
+                        <button onClick={() => setViewMode('tasks')} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'tasks' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><List size={14} /> All Tasks</button>
+                      </div>
+                    </div>
 
-            {viewMode === 'timeline' && <TimelineView tasks={tasks} shifts={shifts} currentTime={currentTime} onSelectTask={setSelectedTask} />}
-            {viewMode === 'report' && <ReportView tasks={tasks} />}
-            {viewMode === 'tasks' && <TasksListView tasks={tasks} onSelectTask={handleEditTask} />}
-          </>
+                    {viewMode === 'timeline' && <TimelineView tasks={tasks} shifts={shifts} currentTime={currentTime} onSelectTask={setSelectedTask} />}
+                    {viewMode === 'report' && <ReportView tasks={tasks} />}
+                    {viewMode === 'tasks' && <TasksListView tasks={tasks} onSelectTask={handleEditTask} />}
+                  </>
+                )}
+              </main>
+
+              {/* Modals */}
+              {selectedTask && <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)} onUpdate={handleUpdateTask} shiftLead={currentShift.lead} />}
+              {editingTask && <EditTaskModal task={editingTask} onClose={handleEditTaskClose} onUpdate={handleEditTaskUpdate} />}
+              
+              {isSettingsOpen && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all duration-300">
+                  <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-slate-100 flex overflow-hidden h-[85vh] relative">
+                    <ShiftManager 
+                      shifts={shifts} onSave={setShifts} onClose={() => setIsSettingsOpen(false)} 
+                      onDataAction={handleDataAction} onViewTasks={() => setViewMode('tasks')}
+                      initialTab={settingsTab} onImport={handleImportTasks} existingTasks={tasks}
+                    />
+                    <ConfirmationModal
+                      action={confirmAction} isProcessing={isProcessing} isSuccess={processSuccess}
+                      onConfirm={executeConfirmedAction} onCancel={resetConfirmationState}
+                      onSuccessClose={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
+                      onViewTasks={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
+                    />
+                  </div>
+                </div>
+              )}
+           </div>
         )}
-      </main>
+      </div>
 
-      {selectedTask && <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)} onUpdate={handleUpdateTask} shiftLead={currentShift.lead} />}
-      {editingTask && <EditTaskModal task={editingTask} onClose={handleEditTaskClose} onUpdate={handleEditTaskUpdate} />}
-      
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-slate-100 flex overflow-hidden h-[85vh] relative">
-            <ShiftManager 
-              shifts={shifts} onSave={setShifts} onClose={() => setIsSettingsOpen(false)} 
-              onDataAction={handleDataAction} onViewTasks={() => setViewMode('tasks')}
-              initialTab={settingsTab} onImport={handleImportTasks} existingTasks={tasks}
-            />
-            <ConfirmationModal
-              action={confirmAction} isProcessing={isProcessing} isSuccess={processSuccess}
-              onConfirm={executeConfirmedAction} onCancel={resetConfirmationState}
-              onSuccessClose={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
-              onViewTasks={() => { resetConfirmationState(); setIsSettingsOpen(false); setViewMode('tasks'); }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
