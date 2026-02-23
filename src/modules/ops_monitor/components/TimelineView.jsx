@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Rocket, Clock, CheckCircle, XCircle, MessageSquare, Tag } from 'lucide-react';
-import { formatTime, getTimelineHours, isTimeInShift, getShiftActivityStatus } from '../utils/utils';
+import { formatTime, getTimelineHours, isTimeInShift, getShiftActivityStatus } from '@shared';
 
 const TimelineView = ({ 
   tasks, 

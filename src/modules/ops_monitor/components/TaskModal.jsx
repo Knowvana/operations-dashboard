@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
-import { formatTime } from '../utils/utils';
+import { formatTime } from '@shared';
 
 const TaskModal = ({ task, onClose, onUpdate, shiftLead }) => {
   const [status, setStatus] = useState(task.status);

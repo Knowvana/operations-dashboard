@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Clock, Tag, User, Calendar, Hash, Repeat, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
-import { getCronDescription } from './CronBuilder';
+import { getCronDescription } from '@shared';
 
 const TasksListView = ({ tasks, onSelectTask }) => {
   const [search, setSearch] = useState('');

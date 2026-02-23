@@ -22,7 +22,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { firebaseConfig } from '../config/firebaseConfig';
-import demoTasksData from '../data/demoData.json'; 
+import demoTasksData from '../data/demoData.json'; // (This goes back to the original!)
 
 let app, auth, db;
 

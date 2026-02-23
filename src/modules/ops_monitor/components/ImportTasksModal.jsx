@@ -4,7 +4,7 @@ import {
   Download, AlertTriangle, CheckCircle2, AlertCircle,
   RefreshCw, ArrowLeft, Save, Copy, ArrowRight 
 } from 'lucide-react';
-import CronBuilder, { getCronDescription } from './CronBuilder';
+import { CronBuilder, getCronDescription } from '@shared';
 
 const GOOGLE_SHEET_HEADERS = `TaskName,TaskCategory,CronExpression`;
 const SAMPLE_CSV = `TaskName,TaskCategory,CronExpression

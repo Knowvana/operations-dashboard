@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save, Type, Tag, Sparkles } from 'lucide-react';
-import CronBuilder from './CronBuilder';
+import { CronBuilder } from '@shared';
 
 const EditTaskModal = ({ task, onClose, onUpdate }) => {
   // Only bind to fields present in the schema

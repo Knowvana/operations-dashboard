@@ -1,23 +1,20 @@
+// src/modules/roster/ShiftRosterApp.jsx
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, FileBarChart, Users } from 'lucide-react';
-import rosterDefaults from '../../data/rosterDefaults.json';
+import { LayoutDashboard, FileBarChart, Users, Database } from 'lucide-react';
+import { rosterDefaults, ModuleLayout, SettingsModal } from '@shared';
 import { getSafeDateKey, generateRoster } from './utils/rosterUtils';
 
-// Sub-components
 import RosterConfig from './components/RosterConfig';
 import RosterDashboard from './components/RosterDashboard';
 import RosterReports from './components/RosterReports';
 import RosterSettings from './components/RosterSettings';
 
-// Import our new unified Layout Architecture
-import ModuleLayout from '../../components/layouts/ModuleLayout';
-
 export default function ShiftRosterApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- Modal State
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // App Data State
   const [employees, setEmployees] = useState(rosterDefaults.initialEmployees);
   const [shifts, setShifts] = useState(rosterDefaults.initialShifts);
   const [leaves, setLeaves] = useState([]);
@@ -35,7 +32,6 @@ export default function ShiftRosterApp() {
       setSchedule(null);
       return;
     }
-
     setGenerationError(null);
     const { roster } = generateRoster(employees, shifts, currentDate.getFullYear(), currentDate.getMonth(), leaves);
     setSchedule(roster);
@@ -54,7 +50,7 @@ export default function ShiftRosterApp() {
     setLeaves([]);
     setSchedule(null);
     setGenerationError(null);
-    setActiveTab('dashboard');
+    setIsSettingsOpen(false); // Close modal on action
   };
 
   const handleDeleteDemoData = () => {
@@ -64,6 +60,7 @@ export default function ShiftRosterApp() {
         setLeaves([]);
         setSchedule(null);
         setGenerationError(null);
+        setIsSettingsOpen(false); // Close modal on action
     }
   };
 
@@ -75,11 +72,36 @@ export default function ShiftRosterApp() {
     setCurrentDate(newDate);
   };
 
-  // Define the module-specific navigation
+  const getDisplayDateRange = () => {
+    if (viewMode === 'day') return currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    if (viewMode === 'week') {
+      const start = new Date(currentDate);
+      start.setDate(currentDate.getDate() - currentDate.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Intercept the settings tab click
+  const handleTabChange = (tabId) => {
+    if (tabId === 'settings') {
+      setIsSettingsOpen(true);
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
   const ROSTER_NAV_ITEMS = [
     { id: 'dashboard', label: 'Planner Grid', icon: LayoutDashboard },
     { id: 'reports', label: 'Compliance Reports', icon: FileBarChart },
     { id: 'config', label: 'Workforce Config', icon: Users },
+  ];
+
+  // Config for the reusable Settings Modal
+  const SETTINGS_TABS = [
+    { id: 'data', label: 'Data Management', icon: Database }
   ];
 
   return (
@@ -88,15 +110,14 @@ export default function ShiftRosterApp() {
       subtitle="Scheduling & Allocation"
       navItems={ROSTER_NAV_ITEMS}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
     >
-      {/* Inject Content based on Active Tab */}
       {activeTab === 'dashboard' && (
         <RosterDashboard 
             schedule={schedule} employees={employees} shifts={shifts}
             viewMode={viewMode} setViewMode={setViewMode}
             currentDate={currentDate} navigateDate={navigateDate} 
-            getDisplayDateRange={() => "Dates Managed Internally"} 
+            getDisplayDateRange={getDisplayDateRange} 
             handleGenerate={handleGenerate} downloadCSV={() => {}} generationError={generationError}
             onUpdateSchedule={handleUpdateSchedule} 
         />
@@ -107,6 +128,7 @@ export default function ShiftRosterApp() {
             schedule={schedule} employees={employees} shifts={shifts} leaves={leaves} 
             viewMode={viewMode} setViewMode={setViewMode}
             currentDate={currentDate} navigateDate={navigateDate}
+            getDisplayDateRange={getDisplayDateRange}
         />
       )}
 
@@ -118,12 +140,23 @@ export default function ShiftRosterApp() {
         />
       )}
 
-      {activeTab === 'settings' && (
-        <RosterSettings 
-            onLoadDemo={handleLoadDemoData}
-            onDeleteDemo={handleDeleteDemoData}
-        />
-      )}
+      {/* The Reusable Modal Popup */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="Roster Settings"
+        tabs={SETTINGS_TABS}
+      >
+        {/* Render Prop Pattern: Show specific component based on active tab */}
+        {(activeModalTab) => (
+          <>
+            {activeModalTab === 'data' && (
+              <RosterSettings onLoadDemo={handleLoadDemoData} onDeleteDemo={handleDeleteDemoData} />
+            )}
+          </>
+        )}
+      </SettingsModal>
+
     </ModuleLayout>
   );
 }

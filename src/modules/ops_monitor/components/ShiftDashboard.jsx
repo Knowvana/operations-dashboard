@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart2, List } from 'lucide-react';
-import ProgressBar from './ProgressBar';
+import { ProgressBar } from '@shared';
 
 const ShiftDashboard = ({ dayData, shiftData, shiftDetails }) => {
   const [monitoringScope, setMonitoringScope] = useState('shift');
