@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, CheckCircle2, ArrowRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { LoadingSpinner } from '@shared';
 
 const ConfirmationModal = ({ action, isProcessing, isSuccess, onConfirm, onCancel, onSuccessClose, onViewTasks }) => {
     if (!action && !isProcessing && !isSuccess) {
@@ -14,7 +15,8 @@ const ConfirmationModal = ({ action, isProcessing, isSuccess, onConfirm, onCance
                     buttonColor: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200',
                     processingText: 'Loading demo environment...',
                     successTitle: 'Load Complete!',
-                    successDesc: 'Demo tasks have been successfully loaded.'
+                    successDesc: 'Demo tasks have been successfully loaded.',
+                    successButton: 'View Dashboard'
                 };
             case 'clear_demo':
                 return {
@@ -22,7 +24,8 @@ const ConfirmationModal = ({ action, isProcessing, isSuccess, onConfirm, onCance
                     buttonColor: 'bg-amber-500 hover:bg-amber-600 shadow-amber-200',
                     processingText: 'Cleaning up database records.',
                     successTitle: 'Cleanup Complete!',
-                    successDesc: 'Demo tasks have been successfully removed.'
+                    successDesc: 'Demo tasks have been successfully removed.',
+                    successButton: 'Go to Tasks'
                 };
             case 'delete_all':
                 return {
@@ -30,7 +33,44 @@ const ConfirmationModal = ({ action, isProcessing, isSuccess, onConfirm, onCance
                     buttonColor: 'bg-rose-600 hover:bg-rose-700 shadow-rose-200',
                     processingText: 'Permanently deleting all data.',
                     successTitle: 'Deletion Complete!',
-                    successDesc: 'All data has been permanently erased.'
+                    successDesc: 'All data has been permanently erased.',
+                    successButton: 'View Dashboard'
+                };
+            case 'initialize_db':
+                return {
+                    iconColor: 'bg-purple-100 text-purple-600',
+                    buttonColor: 'bg-purple-600 hover:bg-purple-700 shadow-purple-200',
+                    processingText: 'Initializing database & admin account...',
+                    successTitle: 'Setup Complete!',
+                    successDesc: 'Database initialized. You are now a Super Admin.',
+                    successButton: 'View Dashboard'
+                };
+            case 'create_tenant':
+                return {
+                    iconColor: 'bg-blue-100 text-blue-600',
+                    buttonColor: 'bg-blue-600 hover:bg-blue-700 shadow-blue-200',
+                    processingText: 'Creating tenant...',
+                    successTitle: 'Action Complete',
+                    successDesc: '',
+                    successButton: 'View Tenants Dashboard'
+                };
+            case 'edit_tenant':
+                return {
+                    iconColor: 'bg-blue-100 text-blue-600',
+                    buttonColor: 'bg-blue-600 hover:bg-blue-700 shadow-blue-200',
+                    processingText: 'Updating tenant...',
+                    successTitle: 'Action Complete',
+                    successDesc: '',
+                    successButton: 'Close'
+                };
+            case 'delete_tenant':
+                return {
+                    iconColor: 'bg-rose-100 text-rose-600',
+                    buttonColor: 'bg-rose-600 hover:bg-rose-700 shadow-rose-200',
+                    processingText: 'Deleting tenant...',
+                    successTitle: 'Action Complete',
+                    successDesc: '',
+                    successButton: 'View Tenants Dashboard'
                 };
             default:
                 return {
@@ -38,44 +78,46 @@ const ConfirmationModal = ({ action, isProcessing, isSuccess, onConfirm, onCance
                     buttonColor: 'bg-slate-600 hover:bg-slate-700 shadow-slate-200',
                     processingText: 'Processing your request...',
                     successTitle: 'Action Complete!',
-                    successDesc: 'The action was completed successfully.'
+                    successDesc: 'The action was completed successfully.',
+                    successButton: 'View Dashboard'
                 };
         }
     };
 
     const content = action ? getActionSpecificContent(action.type) : getActionSpecificContent(null);
+    
+    // Allow custom success messages from action object
+    const successTitle = action?.successTitle || content.successTitle;
+    const successDesc = action?.successDesc || content.successDesc;
+    const successButton = action?.successButton || content.successButton;
+
+    if (isProcessing && !isSuccess) {
+        return (
+            <LoadingSpinner 
+                title="Processing..." 
+                subtitle={content.processingText}
+                isOpen={true}
+            />
+        );
+    }
 
     return (
         <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
             <div className="bg-white border border-slate-100 shadow-2xl shadow-indigo-500/10 rounded-3xl p-8 max-w-sm w-full text-center ring-1 ring-slate-50 relative z-10">
                 
-                {/* STATE 1: LOADING */}
-                {isProcessing && (
-                    <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
-                       <div className="relative mb-4">
-                         <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
-                         <div className="absolute inset-0 flex items-center justify-center">
-                           <RefreshCw size={20} className="text-indigo-500 animate-pulse"/>
-                         </div>
-                       </div>
-                       <h3 className="text-xl font-bold text-slate-800 mb-1">Processing...</h3>
-                       <p className="text-sm text-slate-500">{content.processingText}</p>
-                    </div>
-                )}
-
                 {/* STATE 2: SUCCESS */}
                 {isSuccess && (
                     <div className="flex flex-col items-center animate-in zoom-in-95 duration-300">
                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-100">
                           <CheckCircle2 size={32} strokeWidth={3} />
                        </div>
-                       <h3 className="text-xl font-bold text-slate-800 mb-2">{content.successTitle}</h3>
-                       <p className="text-sm text-slate-500 mb-6">{content.successDesc}</p>
+                       <h3 className="text-xl font-bold text-slate-800 mb-2">{successTitle}</h3>
+                       {successDesc && <p className="text-sm text-slate-500 mb-6">{successDesc}</p>}
                        <button 
                           onClick={action?.type === 'clear_demo' ? onViewTasks : onSuccessClose}
                           className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                        >
-                          {action?.type === 'clear_demo' ? 'Go to Tasks' : 'View Dashboard'} <ArrowRight size={18}/>
+                          {successButton} <ArrowRight size={18}/>
                        </button>
                     </div>
                 )}

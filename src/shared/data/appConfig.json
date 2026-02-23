@@ -1,0 +1,36 @@
+{
+  "appName": "Zen-Ops Enterprise",
+  "appVersion": "1.0.0",
+  "appLogo": "/logo.svg",
+  "company": "Knowvana",
+  "description": "Enterprise Operations Management Platform",
+  "modules": [
+    {
+      "id": "ops_monitor",
+      "name": "Operations Monitor",
+      "version": "1.0.0",
+      "description": "Real-time operations monitoring with shift-based task management"
+    },
+    {
+      "id": "roster_planner",
+      "name": "Shift Roster Planner",
+      "version": "1.0.0",
+      "description": "Workforce scheduling and roster management system"
+    }
+  ],
+  "features": [
+    "Real-time task monitoring",
+    "Shift-based operations",
+    "Workforce scheduling",
+    "Compliance tracking",
+    "Data import/export",
+    "Demo data management"
+  ],
+  "support": {
+    "email": "support@knowvana.com",
+    "documentation": "https://docs.knowvana.com",
+    "website": "https://knowvana.com"
+  },
+  "buildDate": "2026-02-23",
+  "license": "Enterprise License"
+}

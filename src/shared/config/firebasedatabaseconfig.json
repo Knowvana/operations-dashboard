@@ -1,0 +1,18 @@
+{
+  "root_collection": "platforms",
+  "root_document": "knowvana",
+  "collections": {
+    "application_admins": "ApplicationAdmins",
+    "tenants": "Tenants",
+    "tenant_users": "TenantUsers"
+  },
+  "subcollections": {
+    "config": "config",
+    "tasks": "tasks",
+    "metadata": "metadata"
+  },
+  "documents": {
+    "config_app": "app",
+    "metadata_info": "info"
+  }
+}

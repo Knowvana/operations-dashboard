@@ -33,19 +33,48 @@ export default function ModuleLayout({
         
         {/* Dynamic Navigation Links */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-           {navItems.map((item) => (
-             <button 
-                key={item.id}
-                onClick={() => onTabChange(item.id)} 
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                  activeTab === item.id 
-                    ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/50' 
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                <item.icon size={18} className={activeTab === item.id ? 'text-blue-600' : 'text-slate-400'} />
-                {item.label}
-             </button>
+           {navItems.map((item, index) => (
+             item.type === 'separator' ? (
+               <div key={`separator-${index}`} className="py-2">
+                 <div className="h-px bg-slate-200/80 w-full"></div>
+               </div>
+             ) : item.type === 'group' ? (
+               <div key={item.id} className="pt-2">
+                 <div className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                   <item.icon size={16} className="text-slate-400" />
+                   {item.label}
+                 </div>
+                 <div className="space-y-1 mt-1">
+                   {item.children.map((child) => (
+                     <button
+                       key={child.id}
+                       onClick={() => onTabChange(child.id)}
+                       className={`w-full flex items-center gap-3 pl-8 pr-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+                         activeTab === child.id
+                           ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/50'
+                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                       }`}
+                     >
+                       <child.icon size={16} className={activeTab === child.id ? 'text-blue-600' : 'text-slate-400'} />
+                       {child.label}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             ) : (
+               <button 
+                  key={item.id}
+                  onClick={() => onTabChange(item.id)} 
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    activeTab === item.id 
+                      ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/50' 
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <item.icon size={18} className={activeTab === item.id ? 'text-blue-600' : 'text-slate-400'} />
+                  {item.label}
+               </button>
+             )
            ))}
 
           {/* Divider before settings */}

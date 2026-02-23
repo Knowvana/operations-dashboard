@@ -6,7 +6,8 @@ import {
   getAuth, 
   signInAnonymously, 
   onAuthStateChanged,
-  signInWithCustomToken
+  signInWithCustomToken,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -66,7 +67,14 @@ export const signInUser = async (customToken = null) => {
     if (customToken) {
       await signInWithCustomToken(auth, customToken);
     } else {
-      await signInAnonymously(auth);
+      // Default login with admin@knowvana.com/admin credentials
+      try {
+        await signInWithEmailAndPassword(auth, 'admin@knowvana.com', 'admin');
+      } catch (emailError) {
+        // If email login fails, fall back to anonymous
+        console.log('Email login failed, using anonymous auth');
+        await signInAnonymously(auth);
+      }
     }
   } catch (error) {
     console.error("Error signing in:", error);

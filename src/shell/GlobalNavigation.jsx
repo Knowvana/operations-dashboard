@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutGrid, Activity, Calendar, User, Bell, Search, 
-  Info, HelpCircle, Phone 
+  Info, HelpCircle, Phone, Settings, ShieldCheck 
 } from 'lucide-react';
 
 // Reusable Navigation Item Component for a clean, formal menu
@@ -29,7 +29,7 @@ const NavItem = ({ label, icon: Icon, isActive, onClick }) => (
   </button>
 );
 
-export default function GlobalNavigation({ activeModule, onSwitchModule }) {
+export default function GlobalNavigation({ activeModule, onSwitchModule, onOpenGlobalSettings, appName = 'Zen-Ops', isAdmin = false }) {
   return (
     <>
       {/* Ultra-subtle elegant gradient top accent line */}
@@ -45,8 +45,8 @@ export default function GlobalNavigation({ activeModule, onSwitchModule }) {
                 <LayoutGrid className="w-4 h-4 text-white" strokeWidth={2.5} />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-none">Zen-Ops</h1>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5">Enterprise</span>
+                <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-none">{appName.split(' ')[0]}</h1>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5">{appName.split(' ').slice(1).join(' ') || 'Enterprise'}</span>
               </div>
             </div>
 
@@ -64,6 +64,14 @@ export default function GlobalNavigation({ activeModule, onSwitchModule }) {
                 isActive={activeModule === 'roster_planner'} 
                 onClick={() => onSwitchModule('roster_planner')} 
               />
+              {isAdmin && (
+                <NavItem 
+                  label="Admin" 
+                  icon={ShieldCheck} 
+                  isActive={activeModule === 'admin'} 
+                  onClick={() => onSwitchModule('admin')} 
+                />
+              )}
               
               {/* Scalable Future Menu Items (Currently just placeholders for visual completion) */}
               <div className="w-px h-6 bg-slate-200/80 mx-2"></div>
@@ -85,6 +93,12 @@ export default function GlobalNavigation({ activeModule, onSwitchModule }) {
                 icon={Phone} 
                 isActive={activeModule === 'contact'} 
                 onClick={() => console.log('Navigate to Contact')} 
+              />
+              <NavItem 
+                label="Settings" 
+                icon={Settings} 
+                isActive={false} 
+                onClick={onOpenGlobalSettings} 
               />
             </nav>
           </div>

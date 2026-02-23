@@ -1,8 +1,26 @@
 import React from 'react';
-import { Upload, Database, LayoutTemplate, Calendar, Activity, Users } from 'lucide-react';
+import { Upload, Database, LayoutTemplate, Calendar, Activity, Users, ShieldCheck, Play } from 'lucide-react';
 
 // Module-specific content configurations
 const MODULE_CONFIGS = {
+  admin: {
+    icon: ShieldCheck,
+    iconColor: 'text-purple-600',
+    iconBgGlow: 'bg-purple-100',
+    title: 'Initialize Admin?',
+    description: 'Your administration database is currently empty. Initialize the database schema and create your first super admin account to get started.',
+    primaryButton: {
+      label: 'Initialize Database',
+      icon: Database,
+      show: true
+    },
+    secondaryButton: {
+      label: 'Documentation',
+      icon: LayoutTemplate,
+      show: false
+    },
+    footer: 'Zen-Ops Admin v1.0'
+  },
   ops_monitor: {
     icon: Activity,
     iconColor: 'text-indigo-600',
