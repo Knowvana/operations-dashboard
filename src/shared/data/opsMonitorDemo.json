@@ -1,0 +1,54 @@
+{
+  "tasks": [
+    { 
+      "taskName": "System Health Check",
+      "category": "routine",
+      "cron_schedule": "0 8 * * *"
+    },
+    { 
+      "taskName": "Database Backup",
+      "category": "critical",
+      "cron_schedule": "0 9 * * *"
+    },
+    { 
+      "taskName": "Team Standup",
+      "category": "admin",
+      "cron_schedule": "0 10 * * 1-5"
+    },
+    { 
+      "taskName": "API Performance Review",
+      "category": "routine",
+      "cron_schedule": "30 11 * * 1"
+    },
+    { 
+      "taskName": "Security Patch Deployment",
+      "category": "critical",
+      "cron_schedule": "0 13 * * *"
+    },
+    { 
+      "taskName": "Log Analysis",
+      "category": "routine",
+      "cron_schedule": "0 15 * * *"
+    },
+    { 
+      "taskName": "Shift Handover",
+      "category": "admin",
+      "cron_schedule": "0 16 * * *"
+    },
+    { 
+      "taskName": "Cache Invalidation",
+      "category": "routine",
+      "cron_schedule": "0 17 * * *"
+    },
+    { 
+      "taskName": "User Access Audit",
+      "category": "admin",
+      "cron_schedule": "0 19 1 * *"
+    },
+    { 
+      "taskName": "Nightly Sync",
+      "category": "routine",
+      "cron_schedule": "0 23 * * *"
+    }
+  ]
+}

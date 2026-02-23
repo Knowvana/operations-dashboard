@@ -1,7 +1,7 @@
 // src/modules/roster/ShiftRosterApp.jsx
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, FileBarChart, Users, Database } from 'lucide-react';
-import { rosterDefaults, ModuleLayout, SettingsModal } from '@shared';
+import { ModuleLayout, SettingsModal, EmptyState, ConfirmationModal, loadRosterDemo } from '@shared';
 import { getSafeDateKey, generateRoster } from './utils/rosterUtils';
 
 import RosterConfig from './components/RosterConfig';
@@ -15,11 +15,16 @@ export default function ShiftRosterApp() {
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const [employees, setEmployees] = useState(rosterDefaults.initialEmployees);
-  const [shifts, setShifts] = useState(rosterDefaults.initialShifts);
+  const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([{ id: 'default', label: 'Default Shift', time: '09:00 - 17:00', color: 'bg-slate-100 text-slate-800 border-slate-200', reqWeekday: 1, reqWeekend: 0 }]);
   const [leaves, setLeaves] = useState([]);
   const [schedule, setSchedule] = useState(null);
   const [generationError, setGenerationError] = useState(null);
+
+  // Confirmation Modal State
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processSuccess, setProcessSuccess] = useState(false);
 
   useEffect(() => { handleGenerate(); }, [currentDate.getMonth(), currentDate.getFullYear()]); 
 
@@ -44,24 +49,50 @@ export default function ShiftRosterApp() {
     });
   };
 
-  const handleLoadDemoData = () => {
-    setEmployees(rosterDefaults.initialEmployees);
-    setShifts(rosterDefaults.initialShifts);
-    setLeaves([]);
-    setSchedule(null);
-    setGenerationError(null);
-    setIsSettingsOpen(false); // Close modal on action
+  // Data action handler (triggers confirmation modal)
+  const handleDataAction = async (actionDetails) => {
+    setConfirmAction(actionDetails);
   };
 
-  const handleDeleteDemoData = () => {
-    if (window.confirm("Are you sure you want to permanently delete all roster data?")) {
-        setEmployees([]);
-        setShifts([{ id: 'default', label: 'Default Shift', time: '09:00 - 17:00', color: 'bg-slate-100 text-slate-800 border-slate-200', reqWeekday: 1, reqWeekend: 0 }]);
-        setLeaves([]);
-        setSchedule(null);
-        setGenerationError(null);
-        setIsSettingsOpen(false); // Close modal on action
+  // Execute confirmed action
+  const executeConfirmedAction = async () => {
+    if (!confirmAction) return;
+    setIsProcessing(true);
+    try {
+      switch (confirmAction.type) {
+        case 'load_demo':
+          const demoData = loadRosterDemo();
+          setEmployees(demoData.employees);
+          setShifts(demoData.shifts);
+          setLeaves([]);
+          setSchedule(null);
+          setGenerationError(null);
+          break;
+        case 'delete_all':
+          setEmployees([]);
+          setShifts([{ id: 'default', label: 'Default Shift', time: '09:00 - 17:00', color: 'bg-slate-100 text-slate-800 border-slate-200', reqWeekday: 1, reqWeekend: 0 }]);
+          setLeaves([]);
+          setSchedule(null);
+          setGenerationError(null);
+          break;
+        default:
+          break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setProcessSuccess(true);
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred.");
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  // Reset confirmation state
+  const resetConfirmationState = () => {
+    setConfirmAction(null);
+    setIsProcessing(false);
+    setProcessSuccess(false);
   };
 
   const navigateDate = (delta) => {
@@ -113,14 +144,22 @@ export default function ShiftRosterApp() {
       onTabChange={handleTabChange}
     >
       {activeTab === 'dashboard' && (
-        <RosterDashboard 
-            schedule={schedule} employees={employees} shifts={shifts}
-            viewMode={viewMode} setViewMode={setViewMode}
-            currentDate={currentDate} navigateDate={navigateDate} 
-            getDisplayDateRange={getDisplayDateRange} 
-            handleGenerate={handleGenerate} downloadCSV={() => {}} generationError={generationError}
-            onUpdateSchedule={handleUpdateSchedule} 
-        />
+        employees.length === 0 ? (
+          <EmptyState 
+            module="roster_planner"
+            onPrimaryAction={() => setActiveTab('config')}
+            onSecondaryAction={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'This will add sample employees and shifts to your roster. Is that okay?'})}
+          />
+        ) : (
+          <RosterDashboard 
+              schedule={schedule} employees={employees} shifts={shifts}
+              viewMode={viewMode} setViewMode={setViewMode}
+              currentDate={currentDate} navigateDate={navigateDate} 
+              getDisplayDateRange={getDisplayDateRange} 
+              handleGenerate={handleGenerate} downloadCSV={() => {}} generationError={generationError}
+              onUpdateSchedule={handleUpdateSchedule} 
+          />
+        )
       )}
 
       {activeTab === 'reports' && (
@@ -151,8 +190,27 @@ export default function ShiftRosterApp() {
         {(activeModalTab) => (
           <>
             {activeModalTab === 'data' && (
-              <RosterSettings onLoadDemo={handleLoadDemoData} onDeleteDemo={handleDeleteDemoData} />
+              <RosterSettings onDataAction={handleDataAction} />
             )}
+
+            {/* The confirmation dialog overlays inside the modal container */}
+            <ConfirmationModal
+              action={confirmAction}
+              isProcessing={isProcessing}
+              isSuccess={processSuccess}
+              onConfirm={executeConfirmedAction}
+              onCancel={resetConfirmationState}
+              onSuccessClose={() => {
+                resetConfirmationState();
+                setIsSettingsOpen(false);
+                setActiveTab('dashboard');
+              }}
+              onViewTasks={() => {
+                resetConfirmationState();
+                setIsSettingsOpen(false);
+                setActiveTab('dashboard');
+              }}
+            />
           </>
         )}
       </SettingsModal>

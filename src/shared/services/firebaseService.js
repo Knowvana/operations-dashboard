@@ -16,15 +16,15 @@ import {
   updateDoc, 
   onSnapshot, 
   query,
-  where,
-  serverTimestamp,
   getDocs,
   writeBatch
 } from 'firebase/firestore';
 import { firebaseConfig } from '../config/firebaseConfig';
-import demoTasksData from '../data/demoData.json'; // (This goes back to the original!)
 
 let app, auth, db;
+
+// Getter function to access db instance
+export const getDb = () => db;
 
 const TASKS_PATH = 'tasks';
 
@@ -150,34 +150,6 @@ export const updateTask = async (taskId, updates) => {
     }
   } catch (error) {
     console.error("Error updating task:", error);
-    throw error;
-  }
-};
-
-export const generateFullSchedule = async () => {
-  try {
-    const batch = writeBatch(db);
-    const tasksRef = collection(db, TASKS_PATH);
-    
-    demoTasksData.forEach((t, i) => {
-        const taskId = `demo_task_${i}`;
-        const docRef = doc(tasksRef, taskId);
-        
-        // Strict Schema for Demo Data
-        batch.set(docRef, {
-            taskId: taskId,
-            taskName: t.title,
-            AddedByProcess: 'System_Demo',
-            AddedByUser: 'Demo_User',
-            category: t.type,
-            createdAt: new Date().toISOString(),
-            cron_schedule: t.cronExpression || '0 0 * * *'
-        });
-    });
-    
-    await batch.commit();
-  } catch (error) {
-    console.error("Error generating schedule:", error);
     throw error;
   }
 };

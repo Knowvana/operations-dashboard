@@ -4,7 +4,7 @@ import { Activity, BarChart2, List, Layers, Upload, Database } from 'lucide-reac
 import { 
   formatTime, isTimeInShift, calculateStats,
   EmptyState, ConfirmationModal, SettingsModal,
-  subscribeToTasks, updateTask, generateFullSchedule, 
+  subscribeToTasks, updateTask, loadOpsMonitorDemo, 
   deleteAllTasks, deleteDemoTasks, saveTasksBatch 
 } from '@shared';
 
@@ -79,16 +79,26 @@ export default function OpsMonitorApp({ user }) {
     setIsProcessing(true);
     try {
         switch (confirmAction.type) {
-            case 'load_demo': await generateFullSchedule(); break;
-            case 'clear_demo': await deleteDemoTasks(); break;
-            case 'delete_all': await deleteAllTasks(); break;
-            default: break;
+            case 'load_demo': 
+              await loadOpsMonitorDemo();
+              break;
+            case 'clear_demo': 
+              await deleteDemoTasks(); 
+              break;
+            case 'delete_all': 
+              await deleteAllTasks(); 
+              break;
+            default: 
+              break;
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
         setProcessSuccess(true);
     } catch (e) {
-        console.error(e); alert("An error occurred.");
-    } finally { setIsProcessing(false); }
+        console.error(e); 
+        alert("An error occurred.");
+    } finally { 
+        setIsProcessing(false); 
+    }
   };
 
   const resetConfirmationState = () => { setConfirmAction(null); setIsProcessing(false); setProcessSuccess(false); };
@@ -130,7 +140,11 @@ export default function OpsMonitorApp({ user }) {
       
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 overflow-y-auto">
         {tasks.length === 0 ? (
-          <EmptyState onImport={() => openSettings('import')} onLoadDemo={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'Add demo tasks?'})} />
+          <EmptyState 
+            module="ops_monitor"
+            onPrimaryAction={() => openSettings('import')} 
+            onSecondaryAction={() => handleDataAction({type: 'load_demo', title: 'Load Demo Data', desc: 'Add demo tasks?'})} 
+          />
         ) : (
           <>
             <ShiftDashboard dayData={dayData} shiftData={shiftData} shiftDetails={currentShift} />

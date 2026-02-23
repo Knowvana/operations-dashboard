@@ -2,7 +2,15 @@
 import React from 'react';
 import { Database, Trash2 } from 'lucide-react';
 
-export default function RosterSettings({ onLoadDemo, onDeleteDemo }) {
+export default function RosterSettings({ onDataAction }) {
+  const handleDataActionClick = (type) => {
+    const actions = {
+      load_demo: {type: 'load_demo', title: 'Load Demo Data', desc: 'This will add sample employees and shifts to your roster. Is that okay?'},
+      delete_all: {type: 'delete_all', title: 'Delete All Data', desc: 'Warning: This action cannot be undone. All roster data will be permanently erased.'}
+    };
+    onDataAction(actions[type]);
+  };
+
   return (
     <div className="h-full flex flex-col p-10 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto">
         <div className="mb-10">
@@ -17,9 +25,9 @@ export default function RosterSettings({ onLoadDemo, onDeleteDemo }) {
                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
                         <Database size={18} className="text-indigo-600"/> Load Demo Data
                     </h4>
-                    <p className="text-sm text-slate-500 mt-1">Populate timeline with sample activities.</p>
+                    <p className="text-sm text-slate-500 mt-1">Populate roster with sample workforce.</p>
                 </div>
-                <button onClick={onLoadDemo} className="px-5 py-2.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100">Execute</button>
+                <button onClick={() => handleDataActionClick('load_demo')} className="px-5 py-2.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100">Execute</button>
             </div>
 
             {/* Wipe Data */}
@@ -30,7 +38,7 @@ export default function RosterSettings({ onLoadDemo, onDeleteDemo }) {
                     </h4>
                     <p className="text-sm text-rose-600 mt-1">Permanently delete all roster data.</p>
                 </div>
-                <button onClick={onDeleteDemo} className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 shadow-lg shadow-rose-200">Wipe Data</button>
+                <button onClick={() => handleDataActionClick('delete_all')} className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 shadow-lg shadow-rose-200">Wipe Data</button>
             </div>
         </div>
     </div>
