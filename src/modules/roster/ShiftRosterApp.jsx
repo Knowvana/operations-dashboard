@@ -9,7 +9,7 @@ import RosterReports from './components/RosterReports';
 
 export default function ShiftRosterApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [viewMode, setViewMode] = useState('week');
+  const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const [employees, setEmployees] = useState(rosterDefaults.initialEmployees);
@@ -17,7 +17,6 @@ export default function ShiftRosterApp() {
   const [leaves, setLeaves] = useState([]);
 
   const [schedule, setSchedule] = useState(null);
-  const [stats, setStats] = useState(null);
   const [generationError, setGenerationError] = useState(null);
 
   useEffect(() => { handleGenerate(); }, [currentDate.getMonth(), currentDate.getFullYear()]); 
@@ -29,14 +28,26 @@ export default function ShiftRosterApp() {
     if (slotsNeededPerWeek > capacityPerWeek) {
       setGenerationError(`Capacity Issue: Your shift setup requires ${slotsNeededPerWeek} slots/week, but ${employees.length} staff can only cover ${capacityPerWeek} slots.`);
       setSchedule(null);
-      setStats(null);
       return;
     }
 
     setGenerationError(null);
-    const { roster, employeeStats } = generateRoster(employees, shifts, currentDate.getFullYear(), currentDate.getMonth(), leaves);
+    const { roster } = generateRoster(employees, shifts, currentDate.getFullYear(), currentDate.getMonth(), leaves);
     setSchedule(roster);
-    setStats(employeeStats);
+  };
+
+  // NEW: Function to handle manual edits from the UI
+  const handleUpdateSchedule = (dateKey, shiftId, newWorkerIds) => {
+    setSchedule(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [dateKey]: {
+          ...prev[dateKey],
+          [shiftId]: newWorkerIds
+        }
+      };
+    });
   };
 
   const navigateDate = (delta) => {
@@ -89,13 +100,12 @@ export default function ShiftRosterApp() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50/50">
+    // STRICT BOUNDARY: h-[calc(100vh-68px)] and overflow-hidden locks the page from scrolling
+    <div className="flex flex-col bg-slate-50/50 h-[calc(100vh-68px)] overflow-hidden">
       
-      {/* Refined Roster Sub-Header */}
-      <nav className="bg-slate-50/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-[68px] z-40 shadow-sm transition-all duration-300">
+      <nav className="bg-slate-50/90 backdrop-blur-xl border-b border-slate-200/60 z-40 shadow-sm shrink-0">
         <div className="w-full max-w-[1800px] mx-auto px-6 md:px-10 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
             
-            {/* Context Title */}
             <div className="hidden md:flex items-center gap-3">
                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Roster Management</h2>
@@ -103,48 +113,33 @@ export default function ShiftRosterApp() {
                <p className="text-xs font-medium text-slate-500">Scheduling & Allocation</p>
             </div>
             
-            {/* Elegant View Tabs */}
             <div className="flex p-1 bg-white rounded-full border border-slate-200/80 shadow-sm w-full md:w-auto overflow-x-auto hide-scrollbar">
-               <button 
-                  onClick={() => setActiveTab('dashboard')} 
-                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                >
-                Planner Grid
-              </button>
-              <button 
-                  onClick={() => setActiveTab('reports')} 
-                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'reports' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                >
-                Compliance Reports
-              </button>
-              <button 
-                  onClick={() => setActiveTab('config')} 
-                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'config' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                >
-                Workforce Config
-              </button>
+               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>Planner Grid</button>
+               <button onClick={() => setActiveTab('reports')} className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'reports' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>Compliance Reports</button>
+               <button onClick={() => setActiveTab('config')} className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'config' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>Workforce Config</button>
             </div>
             
-            {/* Empty div for flexbox spacing (keeps tabs centered if desired) */}
             <div className="hidden lg:block w-[240px]"></div>
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="w-full max-w-[1800px] mx-auto p-6 md:p-8 lg:p-10 flex-1">
+      {/* Main Content Area - STRICT FLEX constraints for scrollable children */}
+      <main className="w-full max-w-[1800px] mx-auto p-4 md:p-6 lg:p-8 flex-1 flex flex-col min-h-0 overflow-hidden">
         {activeTab === 'dashboard' && (
           <RosterDashboard 
             schedule={schedule} employees={employees} shifts={shifts}
             viewMode={viewMode} setViewMode={setViewMode}
             currentDate={currentDate} navigateDate={navigateDate} getDisplayDateRange={getDisplayDateRange}
             handleGenerate={handleGenerate} downloadCSV={downloadCSV} generationError={generationError}
+            onUpdateSchedule={handleUpdateSchedule} // Passing the edit handler down
           />
         )}
 
         {activeTab === 'reports' && (
           <RosterReports 
-            schedule={schedule} employees={employees} shifts={shifts}
-            leaves={leaves} currentDate={currentDate} navigateMonth={navigateMonth}
+            schedule={schedule} employees={employees} shifts={shifts} leaves={leaves} 
+            viewMode={viewMode} setViewMode={setViewMode}
+            currentDate={currentDate} navigateDate={navigateDate} getDisplayDateRange={getDisplayDateRange}
           />
         )}
 
