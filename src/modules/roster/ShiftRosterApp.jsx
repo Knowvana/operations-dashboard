@@ -89,32 +89,44 @@ export default function ShiftRosterApp() {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Sub-Header / Toolbar (No branding) */}
-      <nav className="bg-white border-b border-slate-200 sticky top-[64px] z-40 shadow-sm">
-        <div className="w-full max-w-[1800px] mx-auto px-6 md:px-10 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="flex-1 flex flex-col bg-slate-50/50">
+      
+      {/* Refined Roster Sub-Header */}
+      <nav className="bg-slate-50/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-[68px] z-40 shadow-sm transition-all duration-300">
+        <div className="w-full max-w-[1800px] mx-auto px-6 md:px-10 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
             
             {/* Context Title */}
-            <div className="hidden md:block">
-               <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">Roster Management</h2>
-               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Scheduling & Allocation</p>
+            <div className="hidden md:flex items-center gap-3">
+               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+               <h2 className="text-lg font-bold text-slate-800 tracking-tight">Roster Management</h2>
+               <span className="text-slate-300 text-xs px-1">|</span>
+               <p className="text-xs font-medium text-slate-500">Scheduling & Allocation</p>
             </div>
             
-            {/* View Tabs */}
-            <div className="flex bg-slate-100 p-1.5 rounded-xl w-full md:w-auto shadow-inner border border-slate-200/60">
-               <button onClick={() => setActiveTab('dashboard')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
-                Roster Planner
+            {/* Elegant View Tabs */}
+            <div className="flex p-1 bg-white rounded-full border border-slate-200/80 shadow-sm w-full md:w-auto overflow-x-auto hide-scrollbar">
+               <button 
+                  onClick={() => setActiveTab('dashboard')} 
+                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                Planner Grid
               </button>
-              <button onClick={() => setActiveTab('reports')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'reports' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
-                Reports
+              <button 
+                  onClick={() => setActiveTab('reports')} 
+                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'reports' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                Compliance Reports
               </button>
-              <button onClick={() => setActiveTab('config')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
-                Configuration & Staff
+              <button 
+                  onClick={() => setActiveTab('config')} 
+                  className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === 'config' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                >
+                Workforce Config
               </button>
             </div>
             
-            {/* Empty div for flexbox spacing */}
-            <div className="hidden md:block w-48"></div>
+            {/* Empty div for flexbox spacing (keeps tabs centered if desired) */}
+            <div className="hidden lg:block w-[240px]"></div>
         </div>
       </nav>
 

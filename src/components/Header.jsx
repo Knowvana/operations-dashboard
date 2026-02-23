@@ -1,68 +1,68 @@
 import React from 'react';
-import { Clock, User, Users, Settings, Upload } from 'lucide-react';
+import { Clock, User, Users, Settings, Upload, CheckCircle2 } from 'lucide-react';
 
 const Header = ({ complianceStatus, timeRemaining, shiftDetails, onOpenSettings, onOpenImport }) => {
   return (
-    // Lowered z-index so it sits cleanly below the GlobalNav
-    <header className="sticky top-[64px] z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all duration-300">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          {/* Left: Active Shift Context (Branding removed) */}
-          <div className="flex items-center gap-6">
-                <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Current Shift Focus</span>
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-700">{shiftDetails.name}</span>
-                        <span className="font-mono text-xs text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/50">{shiftDetails.start} - {shiftDetails.end}</span>
-                    </div>
-                </div>
-                
-                <div className="flex flex-col border-l border-slate-200 pl-6">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Shift Lead</span>
-                    <div className="flex items-center gap-1.5">
-                        <div className="p-0.5 bg-teal-50 rounded-full"><User size={10} className="text-teal-600"/></div>
-                        <span className="font-semibold text-slate-700 text-sm">{shiftDetails.lead}</span>
-                    </div>
-                </div>
-
-                <div className="hidden lg:flex flex-col border-l border-slate-200 pl-6">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Assigned Team</span>
-                    <div className="flex items-center gap-1.5 max-w-[300px] overflow-hidden">
-                        <div className="p-0.5 bg-indigo-50 rounded-full"><Users size={10} className="text-indigo-600"/></div>
-                        <span className="text-xs text-slate-600 truncate">
-                            {shiftDetails.resources && shiftDetails.resources.length > 0 
-                                ? shiftDetails.resources.join(', ') 
-                                : 'No resources'}
-                        </span>
-                    </div>
-                </div>
-          </div>
-
-          {/* Right: Module Actions */}
-          <div className="flex items-center gap-4 justify-end">
-            <div className="text-right hidden sm:block bg-gradient-to-r from-slate-50 to-white px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm mr-2">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Shift Ends</p>
-              <div className="flex items-center justify-end gap-2">
-                 <Clock size={14} className="text-teal-500 animate-pulse" />
-                 <p className="text-xl font-mono font-bold text-teal-600 tabular-nums tracking-tight leading-none">{shiftDetails.end}</p>
-              </div>
+    <header className="sticky top-[68px] z-40 bg-slate-50/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm transition-all duration-300">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4">
+        
+        {/* Left: Elegant Shift Context */}
+        <div className="flex items-center gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
+            
+            {/* Shift Name Badge */}
+            <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm shrink-0">
+                <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></div>
+                <span className="font-bold text-slate-800 text-sm tracking-tight">{shiftDetails.name}</span>
+                <span className="text-slate-300 text-xs px-1">•</span>
+                <span className="font-mono text-xs font-medium text-slate-500">{shiftDetails.start} - {shiftDetails.end}</span>
+            </div>
+            
+            {/* Shift Lead */}
+            <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm shrink-0">
+                <User size={14} className="text-slate-400"/>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Lead:</span>
+                <span className="font-bold text-slate-700 text-sm">{shiftDetails.lead}</span>
             </div>
 
-            <button
-              onClick={onOpenImport}
-              className="h-10 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/20 hover:from-teal-600 hover:to-emerald-600 transition-all text-sm flex items-center gap-2"
-            >
-              <Upload size={16} /> Data Ingestion
-            </button>
-            <button 
-              onClick={onOpenSettings}
-              className="h-10 w-10 rounded-xl border border-slate-200 bg-white shadow-sm hover:bg-slate-50 hover:border-teal-300 text-slate-400 hover:text-teal-600 transition-all flex items-center justify-center group"
-            >
-              <Settings size={18} className="group-hover:rotate-45 transition-transform duration-300" />
-            </button>
-          </div>
+            {/* Team Snapshot */}
+            <div className="hidden lg:flex items-center gap-2.5 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm shrink-0 max-w-[350px]">
+                <Users size={14} className="text-slate-400 shrink-0"/>
+                <span className="text-xs font-medium text-slate-600 truncate">
+                    {shiftDetails.resources && shiftDetails.resources.length > 0 
+                        ? shiftDetails.resources.join(', ') 
+                        : 'No resources assigned'}
+                </span>
+            </div>
+
         </div>
+
+        {/* Right: Actions & Timer */}
+        <div className="flex items-center gap-3 justify-end shrink-0 w-full md:w-auto">
+          
+          {/* Subtle Timer */}
+          <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+             <Clock size={14} className="text-teal-500" />
+             <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ends In</span>
+                <span className="font-mono font-bold text-teal-600 text-sm">{shiftDetails.end}</span>
+             </div>
+          </div>
+
+          <button
+            onClick={onOpenImport}
+            className="h-9 px-5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold shadow-[0_4px_14px_rgba(20,184,166,0.25)] hover:shadow-[0_6px_20px_rgba(20,184,166,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all text-sm flex items-center gap-2"
+          >
+            <Upload size={16} /> Data Ingestion
+          </button>
+          
+          <button 
+            onClick={onOpenSettings}
+            className="h-9 w-9 rounded-full bg-white border border-slate-200 shadow-sm hover:border-teal-300 hover:bg-teal-50 text-slate-400 hover:text-teal-600 transition-all flex items-center justify-center group"
+          >
+            <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500 ease-out" />
+          </button>
+        </div>
+
       </div>
     </header>
   );

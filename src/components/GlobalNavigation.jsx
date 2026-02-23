@@ -1,68 +1,121 @@
 import React from 'react';
-import { LayoutGrid, Activity, Calendar, User, Bell } from 'lucide-react';
+import { 
+  LayoutGrid, Activity, Calendar, User, Bell, Search, 
+  Info, HelpCircle, Phone 
+} from 'lucide-react';
+
+// Reusable Navigation Item Component for a clean, formal menu
+const NavItem = ({ label, icon: Icon, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`relative h-full px-4 flex items-center gap-2 text-sm font-semibold transition-all duration-300 ${
+      isActive 
+        ? 'text-slate-800 bg-slate-50/50' 
+        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50/30'
+    }`}
+  >
+    {Icon && (
+      <Icon 
+        size={16} 
+        className={`transition-colors duration-300 ${isActive ? 'text-teal-600' : 'text-slate-400'}`} 
+      />
+    )}
+    {label}
+    
+    {/* Elegant Active Indicator (Bottom Border) */}
+    {isActive && (
+      <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 rounded-t-md shadow-[0_-2px_10px_rgba(20,184,166,0.3)]" />
+    )}
+  </button>
+);
 
 export default function GlobalNavigation({ activeModule, onSwitchModule }) {
   return (
-    <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/80 sticky top-0 z-[60] shadow-sm transition-all">
-      <div className="w-full px-6 h-16 flex items-center justify-between">
-        
-        {/* Left: Global Identity */}
-        <div className="flex items-center gap-3 w-64">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-2 rounded-xl shadow-lg shadow-slate-900/20">
-            <LayoutGrid className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-none">Zen-Ops</h1>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Enterprise</span>
-          </div>
-        </div>
-
-        {/* Center: Module Switcher (The Licensed Apps) */}
-        <div className="hidden md:flex items-center gap-2 bg-slate-50/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
-          <button
-            onClick={() => onSwitchModule('ops_monitor')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
-              activeModule === 'ops_monitor'
-                ? 'bg-white text-teal-700 shadow-md shadow-slate-200/50 border border-slate-100'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
-            }`}
-          >
-            <Activity size={16} className={activeModule === 'ops_monitor' ? 'text-teal-500' : ''} />
-            Ops Monitor
-          </button>
+    <>
+      {/* Ultra-subtle elegant gradient top accent line */}
+      <div className="h-1 w-full bg-gradient-to-r from-teal-400 via-blue-400 to-indigo-400"></div>
+      
+      <header className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 sticky top-0 z-[60] shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all">
+        <div className="w-full max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
           
-          <button
-            onClick={() => onSwitchModule('roster_planner')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
-              activeModule === 'roster_planner'
-                ? 'bg-white text-blue-700 shadow-md shadow-slate-200/50 border border-slate-100'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
-            }`}
-          >
-            <Calendar size={16} className={activeModule === 'roster_planner' ? 'text-blue-500' : ''} />
-            Shift Roster
-          </button>
-        </div>
-
-        {/* Right: User Profile / Global Actions */}
-        <div className="flex items-center justify-end gap-4 w-64">
-           <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-           </button>
-           <div className="h-8 w-px bg-slate-200 mx-1"></div>
-           <button className="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-xl transition-colors">
-              <div className="text-right hidden lg:block">
-                 <p className="text-sm font-bold text-slate-700 leading-none">Admin User</p>
-                 <p className="text-[10px] font-medium text-slate-500 mt-0.5">System Operations</p>
+          <div className="flex items-center h-full gap-8">
+            {/* 1. Global Identity / Logo */}
+            <div className="flex items-center gap-3 pr-4 border-r border-slate-200/60 h-8">
+              <div className="bg-gradient-to-br from-slate-700 to-slate-900 p-2 rounded-xl shadow-md shadow-slate-900/10 ring-1 ring-slate-900/5">
+                <LayoutGrid className="w-4 h-4 text-white" strokeWidth={2.5} />
               </div>
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 text-white flex items-center justify-center shadow-sm">
-                 <User size={18} />
+              <div className="flex flex-col justify-center">
+                <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-none">Zen-Ops</h1>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5">Enterprise</span>
               </div>
-           </button>
-        </div>
+            </div>
 
-      </div>
-    </header>
+            {/* 2. Formal Primary Navigation Menu */}
+            <nav className="hidden md:flex items-center h-16 gap-1">
+              <NavItem 
+                label="Ops Monitor" 
+                icon={Activity} 
+                isActive={activeModule === 'ops_monitor'} 
+                onClick={() => onSwitchModule('ops_monitor')} 
+              />
+              <NavItem 
+                label="Shift Roster" 
+                icon={Calendar} 
+                isActive={activeModule === 'roster_planner'} 
+                onClick={() => onSwitchModule('roster_planner')} 
+              />
+              
+              {/* Scalable Future Menu Items (Currently just placeholders for visual completion) */}
+              <div className="w-px h-6 bg-slate-200/80 mx-2"></div>
+              
+              <NavItem 
+                label="About" 
+                icon={Info} 
+                isActive={activeModule === 'about'} 
+                onClick={() => console.log('Navigate to About')} 
+              />
+              <NavItem 
+                label="Help Center" 
+                icon={HelpCircle} 
+                isActive={activeModule === 'help'} 
+                onClick={() => console.log('Navigate to Help')} 
+              />
+              <NavItem 
+                label="Contact" 
+                icon={Phone} 
+                isActive={activeModule === 'contact'} 
+                onClick={() => console.log('Navigate to Contact')} 
+              />
+            </nav>
+          </div>
+
+          {/* 3. Right: Search & Profile */}
+          <div className="flex items-center justify-end gap-3 h-full">
+             <button className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all">
+                <Search size={18} />
+             </button>
+             <button className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all relative">
+                <Bell size={18} />
+                {/* Notification indicator */}
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+             </button>
+             
+             <div className="h-6 w-px bg-slate-200 mx-2"></div>
+             
+             {/* Formal Profile Dropdown Trigger */}
+             <button className="flex items-center gap-3 hover:bg-slate-50 p-1.5 pr-3 rounded-full border border-transparent hover:border-slate-200 transition-all">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 text-white flex items-center justify-center shadow-sm text-xs font-bold ring-2 ring-white">
+                   AU
+                </div>
+                <div className="text-left hidden lg:block">
+                   <p className="text-xs font-bold text-slate-700 leading-none">Admin User</p>
+                   <p className="text-[10px] font-medium text-slate-400 mt-1">System Ops</p>
+                </div>
+             </button>
+          </div>
+
+        </div>
+      </header>
+    </>
   );
 }
