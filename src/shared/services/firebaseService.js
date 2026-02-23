@@ -7,7 +7,10 @@ import {
   signInAnonymously, 
   onAuthStateChanged,
   signInWithCustomToken,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -82,9 +85,65 @@ export const signInUser = async (customToken = null) => {
   }
 };
 
+export const loginWithEmail = async (email, password) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    // Provide helpful error message for common Firebase Auth issues
+    if (error.code === 'auth/operation-not-allowed') {
+      const helpError = new Error(
+        'Email/Password authentication is not enabled in Firebase Console. ' +
+        'Please enable it: Firebase Console → Authentication → Sign-in method → Email/Password → Enable'
+      );
+      helpError.code = error.code;
+      throw helpError;
+    }
+    
+    throw error;
+  }
+};
+
+export const createUserWithEmail = async (email, password, displayName) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName) {
+      await updateProfile(result.user, { displayName });
+    }
+    return result.user;
+  } catch (error) {
+    console.error('Signup error:', error);
+    
+    // Provide helpful error message for common Firebase Auth issues
+    if (error.code === 'auth/operation-not-allowed') {
+      const helpError = new Error(
+        'Email/Password authentication is not enabled in Firebase Console. ' +
+        'Please enable it: Firebase Console → Authentication → Sign-in method → Email/Password → Enable'
+      );
+      helpError.code = error.code;
+      throw helpError;
+    }
+    
+    throw error;
+  }
+};
+
+export const signOutUser = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('Sign out error:', error);
+    throw error;
+  }
+};
+
 export const onUserStateChanged = (callback) => {
   return onAuthStateChanged(auth, callback);
 };
+
+export const getAuthInstance = () => auth;
 
 export const subscribeToTasks = (callback) => {
   try {

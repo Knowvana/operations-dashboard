@@ -11,8 +11,8 @@ import AdminApp from '../modules/admin/AdminApp';
 
 // Shared Services
 import { 
-  initializeFirebase, signInUser, onUserStateChanged, SettingsModal,
-  getCurrentTenantId
+  initializeFirebase, SettingsModal,
+  getCurrentTenantId, authenticateUser, LoginForm, DefaultAdminLoginPage
 } from '@shared';
 import defaultAppConfig from '@shared/data/appConfig.json';
 import { Settings, Building2, Info, Database } from 'lucide-react';
@@ -24,29 +24,32 @@ export default function App() {
   const [activeModule, setActiveModule] = useState('ops_monitor'); 
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isGlobalSettingsOpen, setIsGlobalSettingsOpen] = useState(false);
   const [appConfig, setAppConfig] = useState(defaultAppConfig);
   const [tenantId, setTenantId] = useState(null);
+  const [isDefaultAdminMode, setIsDefaultAdminMode] = useState(false);
 
-  // 1. App Initialization & Auth
+  // 1. App Initialization & URL Parameter Detection
   useEffect(() => {
     const initApp = async () => { 
       try { 
-        await initializeFirebase(); 
-        await signInUser(); 
+        await initializeFirebase();
+        
+        // Check URL for default admin mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const loginMode = urlParams.get('login');
+        if (loginMode === 'defaultadmin') {
+          setIsDefaultAdminMode(true);
+        }
+        
+        setIsInitializing(false);
       } catch (e) { 
-        console.error(e); 
+        console.error(e);
+        setIsInitializing(false);
       } 
     };
     initApp();
-  }, []);
-
-  useEffect(() => { 
-    const unsubscribe = onUserStateChanged((u) => {
-      setUser(u);
-      setIsInitializing(false);
-    }); 
-    return () => unsubscribe(); 
   }, []);
 
   // Set tenant ID on user initialization
@@ -57,12 +60,67 @@ export default function App() {
     }
   }, [isInitializing, user]);
 
+  const handleLogin = async (email, password) => {
+    setIsLoggingIn(true);
+    try {
+      const authenticatedUser = await authenticateUser(email, password);
+      setUser(authenticatedUser);
+    } catch (error) {
+      setIsLoggingIn(false);
+      throw error;
+    }
+  };
+
+  const handleDefaultAdminLogin = async (adminUser) => {
+    setIsLoggingIn(true);
+    try {
+      setUser(adminUser);
+      setActiveModule('admin');
+    } catch (error) {
+      setIsLoggingIn(false);
+      throw error;
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setActiveModule('ops_monitor');
+    setIsDefaultAdminMode(false);
+  };
+
   if (isInitializing) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-light">Loading environment...</div>;
   }
 
+  // Show default admin login page if URL parameter is set and no user is authenticated
+  if (!user && isDefaultAdminMode) {
+    return (
+      <DefaultAdminLoginPage 
+        onLogin={handleDefaultAdminLogin} 
+        isLoading={isLoggingIn}
+        appName={appConfig.appName || 'Knowvana'}
+      />
+    );
+  }
+
+  // Show regular login form if no user is authenticated
+  if (!user) {
+    return (
+      <LoginForm 
+        onLogin={handleLogin} 
+        isLoading={isLoggingIn}
+        appName={appConfig.appName || 'Knowvana'}
+      />
+    );
+  }
+
   // 2. The Module Router
   const renderActiveModule = () => {
+    // Default admin can only access admin module
+    if (user?.isDefaultAdmin) {
+      return <AdminApp user={user} isDefaultAdminMode={true} />;
+    }
+    
     switch (activeModule) {
       case 'ops_monitor':
         return <OpsMonitorApp user={user} />;
@@ -86,6 +144,40 @@ export default function App() {
     { id: 'about', label: 'About', icon: Info }
   ];
 
+  // For default admin mode, show minimal UI with only logout option
+  if (user?.isDefaultAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
+        {/* Minimal Nav for Default Admin */}
+        <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
+        <header className="bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 sticky top-0 z-[60] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className="w-full max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-2 rounded-xl shadow-md">
+                <span className="text-white text-lg font-bold">⚙️</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-extrabold text-slate-800">Initial Setup</h1>
+                <p className="text-xs text-slate-400">Database Initialization</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+            >
+              Exit Setup
+            </button>
+          </div>
+        </header>
+
+        {/* PLUGGABLE MODULE AREA */}
+        <div className="flex-1 flex flex-col relative">
+          {renderActiveModule()}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
       {/* GLOBAL SHELL NAV */}
@@ -93,6 +185,8 @@ export default function App() {
         activeModule={activeModule} 
         onSwitchModule={setActiveModule}
         onOpenGlobalSettings={() => setIsGlobalSettingsOpen(true)}
+        onLogout={handleLogout}
+        user={user}
         appName={appConfig.appName}
         isAdmin={true}
       />

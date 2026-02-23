@@ -1,0 +1,7 @@
+{
+  "email": "admin@knowvana.com",
+  "password": "admin123",
+  "displayName": "Default Admin",
+  "role": "super_admin",
+  "permissions": ["all"]
+}

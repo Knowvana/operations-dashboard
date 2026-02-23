@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutGrid, Activity, Calendar, User, Bell, Search, 
-  Info, HelpCircle, Phone, Settings, ShieldCheck 
+  Info, HelpCircle, Phone, Settings, ShieldCheck, LogOut 
 } from 'lucide-react';
 
 // Reusable Navigation Item Component for a clean, formal menu
@@ -29,7 +29,7 @@ const NavItem = ({ label, icon: Icon, isActive, onClick }) => (
   </button>
 );
 
-export default function GlobalNavigation({ activeModule, onSwitchModule, onOpenGlobalSettings, appName = 'Zen-Ops', isAdmin = false }) {
+export default function GlobalNavigation({ activeModule, onSwitchModule, onOpenGlobalSettings, onLogout, user, appName = 'Zen-Ops', isAdmin = false }) {
   return (
     <>
       {/* Ultra-subtle elegant gradient top accent line */}
@@ -116,16 +116,25 @@ export default function GlobalNavigation({ activeModule, onSwitchModule, onOpenG
              
              <div className="h-6 w-px bg-slate-200 mx-2"></div>
              
-             {/* Formal Profile Dropdown Trigger */}
-             <button className="flex items-center gap-3 hover:bg-slate-50 p-1.5 pr-3 rounded-full border border-transparent hover:border-slate-200 transition-all">
+             {/* Profile */}
+             <div className="flex items-center gap-3 p-1.5 pr-3 rounded-full border border-transparent">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 text-white flex items-center justify-center shadow-sm text-xs font-bold ring-2 ring-white">
-                   AU
+                   {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left hidden lg:block">
-                   <p className="text-xs font-bold text-slate-700 leading-none">Admin User</p>
-                   <p className="text-[10px] font-medium text-slate-400 mt-1">System Ops</p>
+                   <p className="text-xs font-bold text-slate-700 leading-none">{user?.displayName || user?.email || 'User'}</p>
+                   <p className="text-[10px] font-medium text-slate-400 mt-1">{user?.email || ''}</p>
                 </div>
-             </button>
+             </div>
+             {onLogout && (
+               <button 
+                 onClick={onLogout}
+                 className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all"
+                 title="Sign Out"
+               >
+                 <LogOut size={18} />
+               </button>
+             )}
           </div>
 
         </div>

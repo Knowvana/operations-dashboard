@@ -7,7 +7,7 @@ import {
   ConfirmationModal,
   LoadingSpinner,
   listApplicationAdmins, 
-  createApplicationAdmin 
+  createDefaultAdmin
 } from '@shared';
 
 // Admin Components
@@ -15,7 +15,7 @@ import AdminDashboard from './components/AdminDashboard';
 import TenantManagement from './components/TenantManagement';
 import UserManagement from './components/UserManagement';
 
-export default function AdminApp({ user }) {
+export default function AdminApp({ user, isDefaultAdminMode = false }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDatabaseEmpty, setIsDatabaseEmpty] = useState(false);
   const [isCheckingDatabase, setIsCheckingDatabase] = useState(true);
@@ -46,14 +46,8 @@ export default function AdminApp({ user }) {
     setIsProcessing(true);
     try {
       if (confirmAction.type === 'initialize_db') {
-        if (!user) throw new Error('No user logged in');
-        
-        await createApplicationAdmin(user.uid, {
-          email: user.email,
-          displayName: user.displayName || user.email,
-          role: 'super_admin',
-          permissions: ['all']
-        });
+        // Create default admin user in ApplicationAdmins collection
+        await createDefaultAdmin();
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -86,6 +80,32 @@ export default function AdminApp({ user }) {
         subtitle="Checking database..." 
         isOpen={true}
       />
+    );
+  }
+
+  // If in default admin mode, always show initialize database UI
+  if (isDefaultAdminMode) {
+    return (
+      <div className="relative h-full">
+        <EmptyState 
+          module="admin" 
+          onPrimaryAction={() => setConfirmAction({
+            type: 'initialize_db',
+            title: 'Initialize Database',
+            desc: 'This will create the necessary database structure and set you up as the first Super Admin. Continue?'
+          })}
+        />
+        
+        <ConfirmationModal
+          action={confirmAction} 
+          isProcessing={isProcessing} 
+          isSuccess={processSuccess}
+          onConfirm={executeConfirmedAction} 
+          onCancel={resetConfirmationState}
+          onSuccessClose={handleSuccessClose}
+          onViewTasks={handleSuccessClose}
+        />
+      </div>
     );
   }
 
